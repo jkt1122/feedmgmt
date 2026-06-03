@@ -18,6 +18,21 @@ export const dataSourceRouter = createTRPCRouter({
     return data ?? [];
   }),
 
+  getProducts: protectedProcedure
+    .input(z.object({ sourceId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const { data, error } = await ctx.supabase
+        .from("canonical_products")
+        .select("*")
+        .eq("source_id", input.sourceId)
+        .eq("merchant_id", ctx.user.id)
+        .order("row_index", { ascending: true })
+        .limit(500);
+
+      if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+      return data ?? [];
+    }),
+
   get: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
@@ -164,6 +179,7 @@ export const dataSourceRouter = createTRPCRouter({
 
         for (let i = 0; i < rows.length; i += BATCH) {
           const batch = rows.slice(i, i + BATCH).map((row, offset) => {
+            const originalRow = rawRows[i + offset];
             const validationIssues: { field: string; message: string }[] = [];
 
             for (const [canonical, sourceCol] of Object.entries(mapping)) {
@@ -185,6 +201,7 @@ export const dataSourceRouter = createTRPCRouter({
               merchant_id: ctx.user.id,
               row_index: i + offset,
               data: row,
+              original_data: originalRow,
               dedup_status: "kept",
               validation_issues: validationIssues,
             };
@@ -222,6 +239,21 @@ export const dataSourceRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
+      const service = createServiceClient();
+
+      // Get storage path before deleting
+      const { data: source } = await ctx.supabase
+        .from("data_sources")
+        .select("storage_path")
+        .eq("id", input.id)
+        .eq("merchant_id", ctx.user.id)
+        .single();
+
+      // Delete from storage
+      if (source?.storage_path) {
+        await service.storage.from("feeds").remove([source.storage_path]);
+      }
+
       const { error } = await ctx.supabase
         .from("data_sources")
         .delete()

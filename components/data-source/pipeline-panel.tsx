@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc/client";
 import { Button } from "@/components/ui/button";
 import type { ProposedRule } from "@/lib/pipeline/rule-schema";
 import { cn } from "@/lib/utils";
-import { Sparkles, CheckCircle2, XCircle, ChevronDown, ChevronUp, Loader2, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
+import { Sparkles, ChevronDown, ChevronUp, Loader2, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
 
 
 export function PipelinePanel({
@@ -20,10 +20,18 @@ export function PipelinePanel({
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   const { data: savedRules, refetch: refetchRules } = trpc.pipeline.listRules.useQuery({ sourceId });
-  const analyze = trpc.pipeline.analyze.useMutation({ onSuccess: (data) => {
-    setProposed(data);
-    setApproved(new Set(data.map((_, i) => i))); // approve all by default
-  }});
+  const analyze = trpc.pipeline.analyze.useMutation({
+    onSuccess: (data) => {
+      setProposed(data);
+      setApproved(new Set(data.map((_, i) => i)));
+    },
+    onError: (err) => {
+      // Retry once on auth errors (session not yet available on first load)
+      if (err.message.includes("UNAUTHORIZED") || err.data?.code === "UNAUTHORIZED") {
+        setTimeout(() => analyze.mutate({ sourceId }), 800);
+      }
+    },
+  });
   const saveRules = trpc.pipeline.saveRules.useMutation({
     onSuccess: () => {
       refetchRules();
@@ -154,21 +162,36 @@ export function PipelinePanel({
                 )}
               >
                 <div className="flex items-center gap-3 px-3 py-2.5">
+                  {/* Checkbox — click anywhere on the row to toggle */}
                   <button
                     onClick={() => setApproved((s) => {
                       const next = new Set(s);
                       if (next.has(i)) { next.delete(i); } else { next.add(i); }
                       return next;
                     })}
-                    className="shrink-0"
+                    className={cn(
+                      "shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors",
+                      approved.has(i)
+                        ? "bg-electric border-electric"
+                        : "bg-white border-slate/40 hover:border-electric"
+                    )}
+                    title={approved.has(i) ? "Deselect" : "Select"}
                   >
-                    {approved.has(i)
-                      ? <CheckCircle2 className="w-4 h-4 text-electric" />
-                      : <XCircle className="w-4 h-4 text-slate" />
-                    }
+                    {approved.has(i) && (
+                      <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 8">
+                        <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
                   </button>
 
-                  <div className="flex-1 min-w-0">
+                  <div
+                    className="flex-1 min-w-0 cursor-pointer"
+                    onClick={() => setApproved((s) => {
+                      const next = new Set(s);
+                      if (next.has(i)) { next.delete(i); } else { next.add(i); }
+                      return next;
+                    })}
+                  >
                     <div className="flex items-center gap-2">
                       <span className={cn(
                         "text-xs font-semibold px-1.5 py-0.5 rounded shrink-0",
@@ -186,8 +209,9 @@ export function PipelinePanel({
 
                   {rule.preview.length > 0 && (
                     <button
-                      onClick={() => toggleExpanded(i)}
+                      onClick={(e) => { e.stopPropagation(); toggleExpanded(i); }}
                       className="shrink-0 p-1 text-slate hover:text-ink"
+                      title="Preview changes"
                     >
                       {expanded.has(i) ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                     </button>
@@ -215,21 +239,25 @@ export function PipelinePanel({
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button
               onClick={handleApprove}
               disabled={saveRules.isPending || approved.size === 0}
               className="bg-electric hover:bg-[#6D28D9] text-white font-semibold text-sm h-8"
             >
-              {saveRules.isPending ? "Saving…" : `Save ${approved.size} rule${approved.size !== 1 ? "s" : ""}`}
+              {saveRules.isPending ? "Applying…" : `Apply ${approved.size} rule${approved.size !== 1 ? "s" : ""} to my data`}
             </Button>
             <Button
               variant="outline"
               onClick={() => setProposed(null)}
+              disabled={saveRules.isPending}
               className="text-sm h-8"
             >
               Dismiss
             </Button>
+            <span className="text-xs text-slate">
+              Saves rules and re-runs the pipeline
+            </span>
           </div>
         </div>
       )}

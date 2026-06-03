@@ -2,8 +2,6 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { PipelineRuleSpec, ProposedRule } from "./rule-schema";
 import { previewRule } from "./rule-engine";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 const SYSTEM_PROMPT = `You are a data quality expert analyzing product catalog CSV data for e-commerce feed management.
 
 Your job is to identify data quality issues and propose pipeline transformation rules to fix them.
@@ -30,6 +28,7 @@ Action types:
 - { "type": "normalize_price", "field": "<source_column_name>" }
 - { "type": "set_default", "field": "<source_column_name>", "value": "<default>" }
 - { "type": "replace", "field": "<source_column_name>", "find": "<text>", "replace": "<text>" }
+- { "type": "template", "field": "<target_column>", "template": "{SourceCol1} - {SourceCol2}" }
 - { "type": "flag_issue", "field": "<source_column_name>", "message": "<issue description>" }
 
 IMPORTANT:
@@ -44,6 +43,19 @@ export async function analyzeDataForRules(
   rows: Record<string, string>[],
   columnMapping: Record<string, string>
 ): Promise<ProposedRule[]> {
+  // Read key directly from .env.local as a fallback for hot-reload env issues
+  let apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    try {
+      const fs = await import("fs");
+      const path = await import("path");
+      const envPath = path.resolve(process.cwd(), ".env.local");
+      const content = fs.readFileSync(envPath, "utf8");
+      const match = content.match(/^ANTHROPIC_API_KEY=(.+)$/m);
+      if (match) apiKey = match[1].trim();
+    } catch { /* ignore */ }
+  }
+  const client = new Anthropic({ apiKey });
   // Sample up to 50 rows
   const sample = rows.slice(0, 50);
 
@@ -80,17 +92,32 @@ Propose transformation rules to improve data quality.`;
     model: "claude-sonnet-4-6",
     max_tokens: 2048,
     system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: prompt }],
+    messages: [
+      { role: "user", content: prompt },
+    ],
   });
 
   const text =
     response.content[0].type === "text" ? response.content[0].text : "";
 
-  // Extract JSON array from response
-  const match = text.match(/\[[\s\S]*\]/);
-  if (!match) throw new Error("Claude returned no valid JSON array");
+  // Reconstruct prefilled opening, strip any trailing code fence
+  const raw = "[" + text.replace(/```[\s\S]*$/, "").trim();
 
-  const specs: PipelineRuleSpec[] = JSON.parse(match[0]);
+  // Extract each complete JSON object individually — more robust than parsing the whole array
+  const objectMatches = raw.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g) ?? [];
+  const specs: PipelineRuleSpec[] = [];
+  for (const objStr of objectMatches) {
+    try {
+      const parsed = JSON.parse(objStr);
+      if (parsed.label && parsed.action && parsed.condition) {
+        specs.push(parsed as PipelineRuleSpec);
+      }
+    } catch {
+      // skip malformed objects
+    }
+  }
+
+  if (specs.length === 0) throw new Error("Claude returned no valid rules");
 
   // Generate previews for each proposed rule
   return specs.map((spec) => {

@@ -102,6 +102,12 @@ function applyAction(
     case "flag_issue":
       // flag_issue doesn't modify the row — handled separately in validation
       break;
+    case "template":
+      // Replace {ColumnName} placeholders with values from other columns
+      r[action.field] = action.template.replace(/\{([^}]+)\}/g, (_, colName) => {
+        return (r[colName] ?? "").trim();
+      });
+      break;
   }
   return r;
 }

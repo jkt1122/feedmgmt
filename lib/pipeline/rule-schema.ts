@@ -15,7 +15,8 @@ export type RuleAction =
   | { type: "suffix"; field: string; value: string }
   | { type: "strip_html"; field: string }
   | { type: "normalize_price"; field: string }
-  | { type: "flag_issue"; field: string; message: string };
+  | { type: "flag_issue"; field: string; message: string }
+  | { type: "template"; field: string; template: string }; // e.g. "{Brand} - {Title}"
 
 export type PipelineRuleSpec = {
   label: string;

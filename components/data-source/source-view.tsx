@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { CANONICAL_FIELDS } from "@/lib/canonical-fields";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, Trash2 } from "lucide-react";
 import { PipelinePanel } from "./pipeline-panel";
+import { FeedChat } from "./feed-chat";
 
 type DataSource = {
   id: string;
@@ -25,6 +26,7 @@ type Product = {
   id: string;
   row_index: number;
   data: Record<string, unknown>;
+  original_data?: Record<string, unknown>;
   dedup_status: string;
   validation_issues: { field: string; message: string }[];
 };
@@ -36,12 +38,28 @@ export function SourceView({
   source: DataSource;
   products: Product[];
 }) {
+  const utils = trpc.useUtils();
   const router = useRouter();
   const [tab, setTab] = useState<"transformed" | "original">("transformed");
-  const products = initialProducts;
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const { data: fetchedProducts } = trpc.dataSource.getProducts.useQuery(
+    { sourceId: source.id },
+    { initialData: initialProducts }
+  );
+  const products = fetchedProducts ?? initialProducts;
+
+  const invalidateProducts = () => utils.dataSource.getProducts.invalidate({ sourceId: source.id });
 
   const runPipeline = trpc.dataSource.runPipeline.useMutation({
-    onSuccess: () => router.refresh(),
+    onSuccess: invalidateProducts,
+  });
+
+  const deleteSource = trpc.dataSource.delete.useMutation({
+    onSuccess: async () => {
+      await utils.dataSource.list.invalidate();
+      router.push("/sources");
+    },
   });
 
   const mappedFields = Object.entries(source.column_mapping ?? {})
@@ -89,6 +107,34 @@ export function SourceView({
             >
               {source.pipeline_status}
             </Badge>
+            {confirmDelete ? (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-red-600 font-medium">Delete?</span>
+                <Button
+                  onClick={() => deleteSource.mutate({ id: source.id })}
+                  disabled={deleteSource.isPending}
+                  className="h-7 text-xs bg-red-500 hover:bg-red-600 text-white font-semibold px-2"
+                >
+                  {deleteSource.isPending ? "Deleting…" : "Yes, delete"}
+                </Button>
+                <Button
+                  onClick={() => setConfirmDelete(false)}
+                  variant="outline"
+                  className="h-7 text-xs px-2"
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={() => setConfirmDelete(true)}
+                variant="outline"
+                className="h-8 text-xs font-semibold gap-1.5 text-red-500 hover:text-red-600 hover:border-red-300"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete
+              </Button>
+            )}
           </div>
         </div>
 
@@ -139,6 +185,11 @@ export function SourceView({
                 const sourceCol = source.column_mapping[col.key];
                 return sourceCol ? String(p.data[sourceCol] ?? "") : "";
               }}
+              isTransformed={(p, col) => {
+                const sourceCol = source.column_mapping[col.key];
+                if (!sourceCol || !p.original_data) return false;
+                return String(p.data[sourceCol] ?? "") !== String((p.original_data as Record<string, unknown>)[sourceCol] ?? "");
+              }}
             />
           )}
         </TabsContent>
@@ -158,6 +209,11 @@ export function SourceView({
       <PipelinePanel
         sourceId={source.id}
         onRulesApplied={() => runPipeline.mutate({ id: source.id })}
+      />
+
+      <FeedChat
+        sourceId={source.id}
+        onDataChanged={invalidateProducts}
       />
     </div>
   );
@@ -187,10 +243,12 @@ function ProductTable({
   products,
   columns,
   getCell,
+  isTransformed,
 }: {
   products: Product[];
   columns: typeof CANONICAL_FIELDS;
   getCell: (p: Product, col: (typeof CANONICAL_FIELDS)[number]) => string;
+  isTransformed?: (p: Product, col: (typeof CANONICAL_FIELDS)[number]) => boolean;
 }) {
   return (
     <div className="overflow-auto h-full">
@@ -228,12 +286,14 @@ function ProductTable({
                 {columns.map((col) => {
                   const val = getCell(product, col);
                   const isDataField = ["id", "price", "sale_price", "gtin", "mpn"].includes(col.key);
+                  const transformed = isTransformed?.(product, col) ?? false;
                   return (
                     <td
                       key={col.key}
                       className={cn(
                         "px-3 py-2 max-w-xs truncate",
-                        isDataField ? "font-data text-xs text-ink" : "text-sm text-ink"
+                        isDataField ? "font-data text-xs" : "text-sm",
+                        transformed ? "text-green-700 bg-green-50/60" : "text-ink"
                       )}
                       title={val}
                     >
