@@ -10,14 +10,14 @@ create table merchants (
 );
 
 -- Auto-create merchant row on signup
-create or replace function handle_new_user()
+create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into merchants (id, email)
+  insert into public.merchants (id, email)
   values (new.id, new.email);
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 create trigger on_auth_user_created
   after insert on auth.users
