@@ -2,6 +2,8 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { applyRules } from "@/lib/pipeline/rule-engine";
+import type { PipelineRuleSpec } from "@/lib/pipeline/rule-schema";
 import Papa from "papaparse";
 
 export const dataSourceRouter = createTRPCRouter({
@@ -119,22 +121,51 @@ export const dataSourceRouter = createTRPCRouter({
           throw new Error("CSV parse failed: " + parsed.errors[0].message);
         }
 
+        // Load enabled pipeline rules for this source
+        const { data: rulesData } = await service
+          .from("pipeline_rules")
+          .select("*")
+          .eq("source_id", input.id)
+          .eq("enabled", true)
+          .order("sort_order", { ascending: true });
+
+        const ruleSpecs: PipelineRuleSpec[] = (rulesData ?? []).map((r) => ({
+          label: r.label,
+          plain_english: r.plain_english,
+          stage: r.stage,
+          condition: r.conditions as PipelineRuleSpec["condition"],
+          action: r.actions as PipelineRuleSpec["action"],
+        }));
+
+        // Apply rules to all rows
+        const rawRows = parsed.data;
+        const { rows, matchCounts } = ruleSpecs.length > 0
+          ? applyRules(rawRows, ruleSpecs)
+          : { rows: rawRows, matchCounts: [] };
+
+        // Update last_match_count on each rule
+        if (rulesData && matchCounts.length > 0) {
+          for (let i = 0; i < rulesData.length; i++) {
+            await service
+              .from("pipeline_rules")
+              .update({ last_match_count: matchCounts[i], last_run_at: new Date().toISOString() })
+              .eq("id", rulesData[i].id);
+          }
+        }
+
         // Clear existing canonical products for this source
         await service
           .from("canonical_products")
           .delete()
           .eq("source_id", input.id);
 
-        // Build canonical rows — store the full original row in data,
-        // keyed by source column name so both tabs work
+        // Build and insert canonical rows in batches
         const BATCH = 500;
-        const rows = parsed.data;
 
         for (let i = 0; i < rows.length; i += BATCH) {
           const batch = rows.slice(i, i + BATCH).map((row, offset) => {
             const validationIssues: { field: string; message: string }[] = [];
 
-            // Check required canonical fields are mapped and non-empty
             for (const [canonical, sourceCol] of Object.entries(mapping)) {
               if (!sourceCol) continue;
               const val = row[sourceCol];

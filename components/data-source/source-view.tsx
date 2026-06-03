@@ -9,6 +9,7 @@ import { CANONICAL_FIELDS } from "@/lib/canonical-fields";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { AlertCircle, RefreshCw } from "lucide-react";
+import { PipelinePanel } from "./pipeline-panel";
 
 type DataSource = {
   id: string;
@@ -153,6 +154,11 @@ export function SourceView({
           )}
         </TabsContent>
       </Tabs>
+
+      <PipelinePanel
+        sourceId={source.id}
+        onRulesApplied={() => runPipeline.mutate({ id: source.id })}
+      />
     </div>
   );
 }
