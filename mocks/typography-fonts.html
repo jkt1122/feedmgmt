@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FeedMgmt — Font Options</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Geist+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Switzer from Fontshare -->
+<link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ink: #0F172A; --slate: #64748B; --subtle: #94A3B8;
+  --border: #E2E8F0; --surface: #fff; --bg: #F8FAFC;
+  --purple: #7C3AED; --lavender: #EDE9FE; --deep: #4C1D95; --violet: #A78BFA;
+  --mist: #F5F3FF;
+  --error: #EF4444; --warn: #F59E0B; --success: #10B981;
+}
+body {
+  background: #E8EDF2;
+  color: var(--ink);
+  padding: 36px 28px 60px;
+  min-height: 100vh;
+}
+
+/* ── page header ── */
+.page-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+.page-header h1 {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--slate); margin-bottom: 6px;
+}
+.page-header p {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px; color: var(--subtle);
+}
+
+/* ── grid ── */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ── card ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.card-header {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--slate);
+}
+.card-tag {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px; font-weight: 600;
+  padding: 2px 9px; border-radius: 100px;
+  background: var(--lavender); color: var(--deep);
+}
+.card-tag.mono-tag {
+  background: #F0FDF4; color: #15803D;
+}
+
+/* ── APP SHELL inside each card ── */
+.shell {
+  display: flex;
+  height: 460px;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 188px;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.sidebar-top {
+  padding: 12px 11px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.logomark {
+  width: 22px; height: 22px; border-radius: 5px;
+  background: linear-gradient(135deg, #4C1D95, #7C3AED);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 10px; font-weight: 800; flex-shrink: 0;
+}
+.sidebar-body { flex: 1; padding: 7px; overflow-y: auto; }
+.nl {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--subtle);
+  padding: 7px 7px 3px;
+}
+.ni {
+  font-size: 12px; font-weight: 500; color: var(--slate);
+  padding: 5px 7px; border-radius: 7px; cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+  margin-bottom: 1px;
+}
+.ni.active { background: var(--lavender); color: var(--deep); font-weight: 600; }
+.dot { width: 5px; height: 5px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+.ndiv { height: 1px; background: var(--border); margin: 6px 0; }
+
+/* CONTENT */
+.content {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; background: var(--bg);
+}
+.topbar {
+  height: 46px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 16px; gap: 10px; flex-shrink: 0;
+}
+.crumb { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--subtle); }
+.tba { margin-left: auto; display: flex; gap: 7px; }
+.btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; font-weight: 600;
+  padding: 5px 12px; border-radius: 6px; border: none; cursor: pointer;
+}
+.btn-p { background: var(--purple); color: #fff; }
+.btn-s { background: var(--surface); color: var(--ink); border: 1px solid var(--border); }
+.strip {
+  background: var(--mist);
+  border-bottom: 1px solid #DDD6FE;
+  padding: 6px 16px;
+  display: flex; align-items: center; gap: 7px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; color: var(--deep); font-weight: 500; flex-shrink: 0;
+}
+.pill {
+  background: var(--lavender); color: var(--deep);
+  font-size: 10px; font-weight: 600;
+  padding: 1px 7px; border-radius: 100px;
+}
+.tabs { display: flex; padding: 0 16px; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+.tab {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; font-weight: 500;
+  padding: 8px 12px; cursor: pointer; color: var(--slate);
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.tab.active { color: var(--purple); font-weight: 600; border-bottom-color: var(--purple); }
+.table-wrap { flex: 1; overflow: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: var(--bg); }
+th {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px; font-weight: 600; color: var(--slate);
+  text-align: left; padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+}
+td { font-size: 11px; padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td.lbl { font-family: 'Inter', sans-serif; color: var(--ink); }
+.badge {
+  font-family: 'Inter', sans-serif;
+  display: inline-flex; align-items: center;
+  font-size: 9px; font-weight: 600;
+  padding: 2px 6px; border-radius: 100px;
+}
+.bg { background: #F0FDF4; color: #15803D; }
+.ba { background: #FFFBEB; color: #92400E; }
+.bb { background: #EFF6FF; color: #1D4ED8; }
+tr:hover td { background: #FAFAFA; }
+.chat {
+  border-top: 1px solid var(--border);
+  background: var(--surface); flex-shrink: 0;
+}
+.chat-top { padding: 6px 13px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 7px; }
+.chat-ctx { font-family: 'Inter', sans-serif; font-size: 10px; color: var(--slate); }
+.chat-body { padding: 8px 13px; display: flex; gap: 7px; }
+.chat-input {
+  flex: 1; font-family: 'Inter', sans-serif;
+  font-size: 11px; color: var(--ink);
+  padding: 6px 10px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--bg);
+}
+
+/* ── TYPE SCALE SECTION ── */
+.scale-section {
+  margin-top: 18px;
+  border-top: 1px solid var(--border);
+  padding: 18px 18px 20px;
+}
+.scale-row { margin-bottom: 13px; }
+.scale-meta {
+  font-family: 'Geist Mono', 'IBM Plex Mono', 'JetBrains Mono', monospace;
+  font-size: 9px; color: var(--subtle); margin-bottom: 3px;
+  letter-spacing: 0.02em;
+}
+.sdiv { height: 1px; background: var(--border); margin: 14px 0; }
+
+/* ═══════════════════════════
+   FONT DEFINITIONS PER OPTION
+═══════════════════════════ */
+
+/* ── A: Geist + Geist Mono ── */
+.opt-a .logoname   { font-family: 'Geist', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+.opt-a .ptitle     { font-family: 'Geist', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+.opt-a .chat-title { font-family: 'Geist', sans-serif; font-size: 11px; font-weight: 600; color: var(--ink); }
+.opt-a td.lbl      { font-family: 'Geist', sans-serif; }
+.opt-a td.mono-val { font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--ink); }
+
+.opt-a .s-h1   { font-family: 'Geist', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); line-height: 1.15; }
+.opt-a .s-h2   { font-family: 'Geist', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: var(--purple); line-height: 1.25; }
+.opt-a .s-h3   { font-family: 'Geist', sans-serif; font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.35; }
+.opt-a .s-body { font-family: 'Geist', sans-serif; font-size: 12px; font-weight: 400; color: var(--slate); line-height: 1.6; }
+.opt-a .s-label{ font-family: 'Geist', sans-serif; font-size: 12px; font-weight: 600; color: var(--ink); }
+.opt-a .s-mono { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--ink); }
+.opt-a .s-mono-sm { font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--subtle); }
+
+/* ── B: IBM Plex Sans + IBM Plex Mono ── */
+.opt-b .logoname   { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
+.opt-b .ptitle     { font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
+.opt-b .chat-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 600; color: var(--ink); }
+.opt-b td.lbl      { font-family: 'IBM Plex Sans', sans-serif; }
+.opt-b td.mono-val { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink); }
+
+.opt-b .s-h1   { font-family: 'IBM Plex Sans', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); line-height: 1.15; }
+.opt-b .s-h2   { font-family: 'IBM Plex Sans', sans-serif; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; color: var(--purple); line-height: 1.25; }
+.opt-b .s-h3   { font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.35; }
+.opt-b .s-body { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 400; color: var(--slate); line-height: 1.6; }
+.opt-b .s-label{ font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 600; color: var(--ink); }
+.opt-b .s-mono { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink); }
+.opt-b .s-mono-sm { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--subtle); }
+
+/* ── C: Switzer ── */
+.opt-c .logoname   { font-family: 'Switzer', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+.opt-c .ptitle     { font-family: 'Switzer', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+.opt-c .chat-title { font-family: 'Switzer', sans-serif; font-size: 11px; font-weight: 600; color: var(--ink); }
+.opt-c td.lbl      { font-family: 'Switzer', sans-serif; }
+.opt-c td.mono-val { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink); }
+
+.opt-c .s-h1   { font-family: 'Switzer', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); line-height: 1.15; }
+.opt-c .s-h2   { font-family: 'Switzer', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: var(--purple); line-height: 1.25; }
+.opt-c .s-h3   { font-family: 'Switzer', sans-serif; font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.35; }
+.opt-c .s-body { font-family: 'Switzer', sans-serif; font-size: 12px; font-weight: 400; color: var(--slate); line-height: 1.6; }
+.opt-c .s-label{ font-family: 'Switzer', sans-serif; font-size: 12px; font-weight: 600; color: var(--ink); }
+.opt-c .s-mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink); }
+.opt-c .s-mono-sm { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--subtle); }
+
+/* ── D: Plus Jakarta Sans + Instrument Sans ── */
+.opt-d .logoname   { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+.opt-d .ptitle     { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+.opt-d .chat-title { font-family: 'Instrument Sans', sans-serif; font-size: 11px; font-weight: 600; color: var(--ink); }
+.opt-d td.lbl      { font-family: 'Instrument Sans', sans-serif; }
+.opt-d td.mono-val { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink); }
+
+.opt-d .s-h1   { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); line-height: 1.15; }
+.opt-d .s-h2   { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: var(--purple); line-height: 1.25; }
+.opt-d .s-h3   { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.35; }
+.opt-d .s-body { font-family: 'Instrument Sans', sans-serif; font-size: 12px; font-weight: 400; color: var(--slate); line-height: 1.6; }
+.opt-d .s-label{ font-family: 'Instrument Sans', sans-serif; font-size: 12px; font-weight: 600; color: var(--ink); }
+.opt-d .s-mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink); }
+.opt-d .s-mono-sm { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--subtle); }
+
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Font Options — FeedMgmt</h1>
+  <p>App shell + type scale for each option. Table/nav/labels use the body font; headings and page titles use the brand font.</p>
+</div>
+
+<div class="grid">
+
+  <!-- ═══ OPTION A: Geist + Geist Mono ═══ -->
+  <div class="card opt-a">
+    <div class="card-header">
+      <span class="card-title">A — Geist</span>
+      <span style="display:flex;gap:6px;">
+        <span class="card-tag">Geist Sans</span>
+        <span class="card-tag mono-tag">Geist Mono</span>
+      </span>
+    </div>
+    <div class="shell">
+      <nav class="sidebar">
+        <div class="sidebar-top">
+          <div class="logomark">H</div>
+          <span class="logoname">FeedMgmt</span>
+        </div>
+        <div class="sidebar-body">
+          <div class="nl">Data Sources</div>
+          <div class="ni active">📄 Summer 2026 — Footwear</div>
+          <div class="ni">📄 Clearance Items</div>
+          <div class="ndiv"></div>
+          <div class="nl">Platform Syncs</div>
+          <div class="ni" style="font-weight:600;color:var(--ink);">🛍 Google <span class="dot" style="margin-left:auto;"></span></div>
+          <div class="ni active" style="padding-left:18px;">Summer Footwear</div>
+          <div class="ni" style="padding-left:18px;">All Products</div>
+          <div class="ndiv"></div>
+          <div class="ni" style="font-weight:600;color:var(--ink);">🟦 Meta <span class="dot" style="margin-left:auto;"></span></div>
+          <div class="ni" style="padding-left:18px;">All Products</div>
+        </div>
+      </nav>
+      <div class="content">
+        <div class="topbar">
+          <span class="ptitle">Summer 2026 — Footwear</span>
+          <span class="crumb">/ Data Sources</span>
+          <div class="tba">
+            <button class="btn btn-s">↑ Re-upload</button>
+            <button class="btn btn-p">✦ Assistant</button>
+          </div>
+        </div>
+        <div class="strip">
+          <span class="pill">8 transformations</span>
+          <span>applied · click to review</span>
+          <span style="margin-left:auto;font-size:10px;color:var(--slate);">2 min ago</span>
+        </div>
+        <div class="tabs">
+          <div class="tab active">Transformed</div>
+          <div class="tab">Original</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Title</th><th>Price</th><th>Avail.</th><th>Brand</th></tr></thead>
+            <tbody>
+              <tr><td class="mono-val">SKU-001-BLK</td><td class="lbl">Men's Trail Runner — Black</td><td class="mono-val">$89.99</td><td><span class="badge bg">in_stock</span></td><td class="lbl">Altra</td></tr>
+              <tr><td class="mono-val">SKU-002-WHT</td><td class="lbl">Women's Road Shoe — White</td><td class="mono-val">$124.00</td><td><span class="badge bg">in_stock</span></td><td class="lbl">Brooks</td></tr>
+              <tr><td class="mono-val">SKU-003-RED</td><td class="lbl">Kids' Sneaker — Red/White</td><td class="mono-val">$44.99</td><td><span class="badge ba">preorder</span></td><td class="lbl">Nike</td></tr>
+              <tr><td class="mono-val">SKU-004-GRN</td><td class="lbl">Hiking Boot — Forest Green</td><td class="mono-val">$199.00</td><td><span class="badge bg">in_stock</span></td><td class="lbl">Salomon</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="chat">
+          <div class="chat-top">
+            <span class="chat-title">Feed Assistant</span>
+            <span style="color:var(--border);">·</span>
+            <span class="chat-ctx">Summer 2026 — Footwear</span>
+          </div>
+          <div class="chat-body">
+            <input class="chat-input" placeholder="Standardize brand names, fix title casing…" readonly>
+            <button class="btn btn-p">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="scale-section">
+      <div class="scale-row"><div class="scale-meta">H1 · Geist 700 · 26px</div><div class="s-h1">Navigate Growth.</div></div>
+      <div class="scale-row"><div class="scale-meta">H2 · Geist 700 · 18px · Electric Purple</div><div class="s-h2">Data Sources</div></div>
+      <div class="scale-row"><div class="scale-meta">H3 · Geist 600 · 14px</div><div class="s-h3">Summer 2026 — Footwear</div></div>
+      <div class="sdiv"></div>
+      <div class="scale-row"><div class="scale-meta">Label · Geist 600 · 12px</div><div class="s-label">Sync schedule · Active rules · Export feed</div></div>
+      <div class="scale-row"><div class="scale-meta">Body · Geist 400 · 12px · Slate</div><div class="s-body">1,240 products after deduplication. 8 transformations applied to the source pipeline.</div></div>
+      <div class="sdiv"></div>
+      <div class="scale-row"><div class="scale-meta">Mono · Geist Mono 400 · 11px</div><div class="s-mono">SKU-001-BLK · $89.99 · 784120930012</div></div>
+      <div class="scale-row"><div class="scale-meta">Mono-sm · Geist Mono 400 · 10px · Subtle</div><div class="s-mono-sm">availability = "in_stock" AND price > 10</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ OPTION B: IBM Plex Sans + IBM Plex Mono ═══ -->
+  <div class="card opt-b">
+    <div class="card-header">
+      <span class="card-title">B — IBM Plex Sans</span>
+      <span style="display:flex;gap:6px;">
+        <span class="card-tag">IBM Plex Sans</span>
+        <span class="card-tag mono-tag">IBM Plex Mono</span>
+      </span>
+    </div>
+    <div class="shell">
+      <nav class="sidebar">
+        <div class="sidebar-top">
+          <div class="logomark">H</div>
+          <span class="logoname">FeedMgmt</span>
+        </div>
+        <div class="sidebar-body">
+          <div class="nl">Data Sources</div>
+          <div class="ni active">📄 Summer 2026 — Footwear</div>
+          <div class="ni">📄 Clearance Items</div>
+          <div class="ndiv"></div>
+          <div class="nl">Platform Syncs</div>
+          <div class="ni" style="font-weight:600;color:var(--ink);">🛍 Google <span class="dot" style="margin-left:auto;"></span></div>
+          <div class="ni active" style="padding-left:18px;">Summer Footwear</div>
+          <div class="ni" style="padding-left:18px;">All Products</div>
+          <div class="ndiv"></div>
+          <div class="ni" style="font-weight:600;color:var(--ink);">🟦 Meta <span class="dot" style="margin-left:auto;"></span></div>
+          <div class="ni" style="padding-left:18px;">All Products</div>
+        </div>
+      </nav>
+      <div class="content">
+        <div class="topbar">
+          <span class="ptitle">Summer 2026 — Footwear</span>
+          <span class="crumb">/ Data Sources</span>
+          <div class="tba">
+            <button class="btn btn-s">↑ Re-upload</button>
+            <button class="btn btn-p">✦ Assistant</button>
+          </div>
+        </div>
+        <div class="strip">
+          <span class="pill">8 transformations</span>
+          <span>applied · click to review</span>
+          <span style="margin-left:auto;font-size:10px;color:var(--slate);">2 min ago</span>
+        </div>
+        <div class="tabs">
+          <div class="tab active">Transformed</div>
+          <div class="tab">Original</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Title</th><th>Price</th><th>Avail.</th><th>Brand</th></tr></thead>
+            <tbody>
+              <tr><td class="mono-val">SKU-001-BLK</td><td class="lbl">Men's Trail Runner — Black</td><td class="mono-val">$89.99</td><td><span class="badge bg">in_stock</span></td><td class="lbl">Altra</td></tr>
+              <tr><td class="mono-val">SKU-002-WHT</td><td class="lbl">Women's Road Shoe — White</td><td class="mono-val">$124.00</td><td><span class="badge bg">in_stock</span></td><td class="lbl">Brooks</td></tr>
+              <tr><td class="mono-val">SKU-003-RED</td><td class="lbl">Kids' Sneaker — Red/White</td><td class="mono-val">$44.99</td><td><span class="badge ba">preorder</span></td><td class="lbl">Nike</td></tr>
+              <tr><td class="mono-val">SKU-004-GRN</td><td class="lbl">Hiking Boot — Forest Green</td><td class="mono-val">$199.00</td><td><span class="badge bg">in_stock</span></td><td class="lbl">Salomon</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="chat">
+          <div class="chat-top">
+            <span class="chat-title">Feed Assistant</span>
+            <span style="color:var(--border);">·</span>
+            <span class="chat-ctx">Summer 2026 — Footwear</span>
+          </div>
+          <div class="chat-body">
+            <input class="chat-input" placeholder="Standardize brand names, fix title casing…" readonly>
+            <button class="btn btn-p">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="scale-section">
+      <div class="scale-row"><div class="scale-meta">H1 · IBM Plex Sans 700 · 26px</div><div class="s-h1">Navigate Growth.</div></div>
+      <div class="scale-row"><div class="scale-meta">H2 · IBM Plex Sans 600 · 18px · Electric Purple</div><div class="s-h2">Data Sources</div></div>
+      <div class="scale-row"><div class="scale-meta">H3 · IBM Plex Sans 600 · 14px</div><div class="s-h3">Summer 2026 — Footwear</div></div>
+      <div class="sdiv"></div>
+      <div class="scale-row"><div class="scale-meta">Label · IBM Plex Sans 600 · 12px</div><div class="s-label">Sync schedule · Active rules · Export feed</div></div>
+      <div class="scale-row"><div class="scale-meta">Body · IBM Plex Sans 400 · 12px · Slate</div><div class="s-body">1,240 products after deduplication. 8 transformations applied to the source pipeline.</div></div>
+      <div class="sdiv"></div>
+      <div class="scale-row"><div class="scale-meta">Mono · IBM Plex Mono 400 · 11px</div><div class="s-mono">SKU-001-BLK · $89.99 · 784120930012</div></div>
+      <div class="scale-row"><div class="scale-meta">Mono-sm · IBM Plex Mono 400 · 10px · Subtle</div><div class="s-mono-sm">availability = "in_stock" AND price > 10</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ OPTION C: Switzer + JetBrains Mono ═══ -->
+  <div class="card opt-c">
+    <div class="card-header">
+      <span class="card-title">C — Switzer</span>
+      <span style="display:flex;gap:6px;">
+        <span class="card-tag">Switzer (Fontshare)</span>
+        <span class="card-tag mono-tag">JetBrains Mono</span>
+      </span>
+    </div>
+    <div class="shell">
+      <nav class="sidebar">
+        <div class="sidebar-top">
+          <div class="logomark">H</div>
+          <span class="logoname">FeedMgmt</span>
+        </div>
+        <div class="sidebar-body">
+          <div class="nl">Data Sources</div>
+          <div class="ni active">📄 Summer 2026 — Footwear</div>
+          <div class="ni">📄 Clearance Items</div>
+          <div class="ndiv"></div>
+          <div class="nl">Platform Syncs</div>
+          <div class="ni" style="font-weight:600;color:var(--ink);">🛍 Google <span class="dot" style="margin-left:auto;"></span></div>
+          <div class="ni active" style="padding-left:18px;">Summer Footwear</div>
+          <div class="ni" style="padding-left:18px;">All Products</div>
+          <div class="ndiv"></div>
+          <div class="ni" style="font-weight:600;color:var(--ink);">🟦 Meta <span class="dot" style="margin-left:auto;"></span></div>
+          <div class="ni" style="padding-left:18px;">All Products</div>
+        </div>
+      </nav>
+      <div class="content">
+        <div class="topbar">
+          <span class="ptitle">Summer 2026 — Footwear</span>
+          <span class="crumb">/ Data Sources</span>
+          <div class="tba">
+            <button class="btn btn-s">↑ Re-upload</button>
+            <button class="btn btn-p">✦ Assistant</button>
+          </div>
+        </div>
+        <div class="strip">
+          <span class="pill">8 transformations</span>
+          <span>applied · click to review</span>
+          <span style="margin-left:auto;font-size:10px;color:var(--slate);">2 min ago</span>
+        </div>
+        <div class="tabs">
+          <div class="tab active">Transformed</div>
+          <div class="tab">Original</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Title</th><th>Price</th><th>Avail.</th><th>Brand</th></tr></thead>
+            <tbody>
+              <tr><td class="mono-val">SKU-001-BLK</td><td class="lbl">Men's Trail Runner — Black</td><td class="mono-val">$89.99</td><td><span class="badge bg">in_stock</span></td><td class="lbl">Altra</td></tr>
+              <tr><td class="mono-val">SKU-002-WHT</td><td class="lbl">Women's Road Shoe — White</td><td class="mono-val">$124.00</td><td><span class="badge bg">in_stock</span></td><td class="lbl">Brooks</td></tr>
+              <tr><td class="mono-val">SKU-003-RED</td><td class="lbl">Kids' Sneaker — Red/White</td><td class="mono-val">$44.99</td><td><span class="badge ba">preorder</span></td><td class="lbl">Nike</td></tr>
+              <tr><td class="mono-val">SKU-004-GRN</td><td class="lbl">Hiking Boot — Forest Green</td><td class="mono-val">$199.00</td><td><span class="badge bg">in_stock</span></td><td class="lbl">Salomon</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="chat">
+          <div class="chat-top">
+            <span class="chat-title">Feed Assistant</span>
+            <span style="color:var(--border);">·</span>
+            <span class="chat-ctx">Summer 2026 — Footwear</span>
+          </div>
+          <div class="chat-body">
+            <input class="chat-input" placeholder="Standardize brand names, fix title casing…" readonly>
+            <button class="btn btn-p">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="scale-section">
+      <div class="scale-row"><div class="scale-meta">H1 · Switzer 700 · 26px</div><div class="s-h1">Navigate Growth.</div></div>
+      <div class="scale-row"><div class="scale-meta">H2 · Switzer 700 · 18px · Electric Purple</div><div class="s-h2">Data Sources</div></div>
+      <div class="scale-row"><div class="scale-meta">H3 · Switzer 600 · 14px</div><div class="s-h3">Summer 2026 — Footwear</div></div>
+      <div class="sdiv"></div>
+      <div class="scale-row"><div class="scale-meta">Label · Switzer 600 · 12px</div><div class="s-label">Sync schedule · Active rules · Export feed</div></div>
+      <div class="scale-row"><div class="scale-meta">Body · Switzer 400 · 12px · Slate</div><div class="s-body">1,240 products after deduplication. 8 transformations applied to the source pipeline.</div></div>
+      <div class="sdiv"></div>
+      <div class="scale-row"><div class="scale-meta">Mono · JetBrains Mono 400 · 11px</div><div class="s-mono">SKU-001-BLK · $89.99 · 784120930012</div></div>
+      <div class="scale-row"><div class="scale-meta">Mono-sm · JetBrains Mono 400 · 10px · Subtle</div><div class="s-mono-sm">availability = "in_stock" AND price > 10</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ OPTION D: Plus Jakarta Sans + Instrument Sans ═══ -->
+  <div class="card opt-d">
+    <div class="card-header">
+      <span class="card-title">D — Plus Jakarta Sans / Instrument Sans</span>
+      <span style="display:flex;gap:6px;">
+        <span class="card-tag">Plus Jakarta Sans</span>
+        <span class="card-tag" style="background:#FFF7ED;color:#C2410C;">Instrument Sans</span>
+      </span>
+    </div>
+    <div class="shell">
+      <nav class="sidebar">
+        <div class="sidebar-top">
+          <div class="logomark">H</div>
+          <span class="logoname">FeedMgmt</span>
+        </div>
+        <div class="sidebar-body">
+          <div class="nl">Data Sources</div>
+          <div class="ni active">📄 Summer 2026 — Footwear</div>
+          <div class="ni">📄 Clearance Items</div>
+          <div class="ndiv"></div>
+          <div class="nl">Platform Syncs</div>
+          <div class="ni" style="font-weight:600;color:var(--ink);">🛍 Google <span class="dot" style="margin-left:auto;"></span></div>
+          <div class="ni active" style="padding-left:18px;">Summer Footwear</div>
+          <div class="ni" style="padding-left:18px;">All Products</div>
+          <div class="ndiv"></div>
+          <div class="ni" style="font-weight:600;color:var(--ink);">🟦 Meta <span class="dot" style="margin-left:auto;"></span></div>
+          <div class="ni" style="padding-left:18px;">All Products</div>
+        </div>
+      </nav>
+      <div class="content">
+        <div class="topbar">
+          <span class="ptitle">Summer 2026 — Footwear</span>
+          <span class="crumb">/ Data Sources</span>
+          <div class="tba">
+            <button class="btn btn-s">↑ Re-upload</button>
+            <button class="btn btn-p">✦ Assistant</button>
+          </div>
+        </div>
+        <div class="strip">
+          <span class="pill">8 transformations</span>
+          <span>applied · click to review</span>
+          <span style="margin-left:auto;font-size:10px;color:var(--slate);">2 min ago</span>
+        </div>
+        <div class="tabs">
+          <div class="tab active">Transformed</div>
+          <div class="tab">Original</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Title</th><th>Price</th><th>Avail.</th><th>Brand</th></tr></thead>
+            <tbody>
+              <tr><td class="mono-val">SKU-001-BLK</td><td class="lbl">Men's Trail Runner — Black</td><td class="mono-val">$89.99</td><td><span class="badge bg">in_stock</span></td><td class="lbl">Altra</td></tr>
+              <tr><td class="mono-val">SKU-002-WHT</td><td class="lbl">Women's Road Shoe — White</td><td class="mono-val">$124.00</td><td><span class="badge bg">in_stock</span></td><td class="lbl">Brooks</td></tr>
+              <tr><td class="mono-val">SKU-003-RED</td><td class="lbl">Kids' Sneaker — Red/White</td><td class="mono-val">$44.99</td><td><span class="badge ba">preorder</span></td><td class="lbl">Nike</td></tr>
+              <tr><td class="mono-val">SKU-004-GRN</td><td class="lbl">Hiking Boot — Forest Green</td><td class="mono-val">$199.00</td><td><span class="badge bg">in_stock</span></td><td class="lbl">Salomon</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="chat">
+          <div class="chat-top">
+            <span class="chat-title">Feed Assistant</span>
+            <span style="color:var(--border);">·</span>
+            <span class="chat-ctx">Summer 2026 — Footwear</span>
+          </div>
+          <div class="chat-body">
+            <input class="chat-input" placeholder="Standardize brand names, fix title casing…" readonly>
+            <button class="btn btn-p">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="scale-section">
+      <div class="scale-row"><div class="scale-meta">H1 · Plus Jakarta Sans 700 · 26px</div><div class="s-h1">Navigate Growth.</div></div>
+      <div class="scale-row"><div class="scale-meta">H2 · Plus Jakarta Sans 700 · 18px · Electric Purple</div><div class="s-h2">Data Sources</div></div>
+      <div class="scale-row"><div class="scale-meta">H3 · Plus Jakarta Sans 600 · 14px</div><div class="s-h3">Summer 2026 — Footwear</div></div>
+      <div class="sdiv"></div>
+      <div class="scale-row"><div class="scale-meta">Label · Instrument Sans 600 · 12px</div><div class="s-label">Sync schedule · Active rules · Export feed</div></div>
+      <div class="scale-row"><div class="scale-meta">Body · Instrument Sans 400 · 12px · Slate</div><div class="s-body">1,240 products after deduplication. 8 transformations applied to the source pipeline.</div></div>
+      <div class="sdiv"></div>
+      <div class="scale-row"><div class="scale-meta">Mono · JetBrains Mono 400 · 11px</div><div class="s-mono">SKU-001-BLK · $89.99 · 784120930012</div></div>
+      <div class="scale-row"><div class="scale-meta">Mono-sm · JetBrains Mono 400 · 10px · Subtle</div><div class="s-mono-sm">availability = "in_stock" AND price > 10</div></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

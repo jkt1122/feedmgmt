@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FeedMgmt — Typography Comparison</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ink: #0F172A; --slate: #64748B; --subtle: #94A3B8;
+  --border: #E2E8F0; --surface: #fff; --bg: #F8FAFC;
+  --purple: #7C3AED; --lavender: #EDE9FE; --deep: #4C1D95; --violet: #A78BFA;
+  --mist: #F5F3FF;
+  --error: #EF4444; --warn: #F59E0B; --success: #10B981;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  background: #F1F5F9;
+  color: var(--ink);
+  font-size: 13px;
+  min-height: 100vh;
+  padding: 40px 32px;
+}
+
+.page-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate);
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.panel-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--slate);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-label .tag {
+  background: var(--lavender);
+  color: var(--deep);
+  border-radius: 100px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.panel-label .tag.current { background: #F1F5F9; color: var(--slate); }
+
+/* ── OPTION A: All Inter (current) ── */
+.a { --brand: 'Inter', sans-serif; --plain: 'Inter', sans-serif; }
+/* ── OPTION B: Plus Jakarta Sans headings + Inter body ── */
+.b { --brand: 'Plus Jakarta Sans', sans-serif; --plain: 'Inter', sans-serif; }
+
+/* ─── SHARED APP SHELL ─── */
+.app-shell {
+  display: flex;
+  height: 580px;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 200px;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.sidebar-header {
+  padding: 14px 12px 11px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.logo-mark {
+  width: 24px; height: 24px; border-radius: 6px;
+  background: linear-gradient(135deg, #4C1D95, #7C3AED);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 11px; font-weight: 800;
+  flex-shrink: 0;
+}
+.a .logo-name { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+.b .logo-name { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+
+.sidebar-body { flex: 1; padding: 8px; overflow-y: auto; }
+.nav-section-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--subtle);
+  padding: 8px 8px 4px;
+}
+.nav-item {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px; font-weight: 500; color: var(--slate);
+  padding: 6px 8px; border-radius: 8px; cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 1px;
+}
+.nav-item.active {
+  background: var(--lavender); color: var(--deep); font-weight: 600;
+}
+.nav-item .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+.nav-item .sub {
+  padding: 5px 8px 5px 22px; font-size: 12px;
+}
+.nav-item.sub.active { background: var(--lavender); color: var(--deep); font-weight: 600; border-radius: 8px; }
+
+/* CONTENT */
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* TOPBAR */
+.topbar {
+  height: 50px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.a .page-title { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
+.b .page-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
+.breadcrumb {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px; color: var(--subtle);
+}
+.topbar-actions { margin-left: auto; display: flex; gap: 8px; }
+.btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px; font-weight: 600;
+  padding: 6px 14px; border-radius: 7px; cursor: pointer;
+  border: none; display: flex; align-items: center; gap: 5px;
+}
+.btn-primary { background: var(--purple); color: #fff; }
+.btn-secondary { background: var(--surface); color: var(--ink); border: 1px solid var(--border); }
+
+/* TRANSFORM STRIP */
+.transform-strip {
+  background: var(--mist);
+  border-bottom: 1px solid #DDD6FE;
+  padding: 7px 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--deep);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.strip-pill {
+  background: var(--lavender);
+  color: var(--deep);
+  font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 100px;
+}
+
+/* TABS */
+.tabs {
+  display: flex;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.tab {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px; font-weight: 500;
+  padding: 10px 14px; cursor: pointer; color: var(--slate);
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.tab.active { color: var(--purple); font-weight: 600; border-bottom-color: var(--purple); }
+
+/* TABLE AREA */
+.table-wrap { flex: 1; overflow: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: var(--bg); }
+th {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; font-weight: 600;
+  color: var(--slate); text-align: left;
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  white-space: nowrap; letter-spacing: 0.02em; text-transform: uppercase;
+}
+td {
+  font-size: 12px; padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+td.mono { font-family: var(--mono); font-size: 11px; color: var(--ink); }
+td.label { font-family: 'Inter', sans-serif; color: var(--ink); }
+td.muted { font-family: 'Inter', sans-serif; color: var(--slate); }
+.badge {
+  display: inline-flex; align-items: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px; font-weight: 600;
+  padding: 2px 7px; border-radius: 100px;
+}
+.badge-green { background: #F0FDF4; color: #15803D; }
+.badge-amber { background: #FFFBEB; color: #92400E; }
+.badge-blue  { background: #EFF6FF; color: #1D4ED8; }
+tr:hover td { background: #FAFAFA; }
+
+/* CHAT */
+.chat {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.chat-header {
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.a .chat-title { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: var(--ink); }
+.b .chat-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; color: var(--ink); }
+.chat-ctx {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; color: var(--slate);
+}
+.chat-body { padding: 10px 16px; display: flex; gap: 8px; }
+.chat-input {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px; color: var(--ink);
+  padding: 7px 12px; border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* ─── SECTION 2: TYPE SCALE SHOWCASE ─── */
+.section-divider {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--slate); text-align: center;
+  margin: 32px 0 16px;
+}
+
+.scale-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 1280px;
+  margin: 0 auto 40px;
+}
+.scale-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 28px 24px;
+}
+.scale-panel-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--subtle);
+  margin-bottom: 24px;
+  display: flex; align-items: center; gap: 8px;
+}
+.scale-panel-label .tag {
+  background: var(--lavender); color: var(--deep);
+  border-radius: 100px; padding: 2px 8px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+}
+.scale-panel-label .tag.current { background: #F1F5F9; color: var(--slate); }
+
+.type-row { margin-bottom: 18px; display: flex; flex-direction: column; gap: 2px; }
+.type-token {
+  font-family: var(--mono);
+  font-size: 10px; color: var(--subtle);
+  margin-bottom: 3px;
+}
+.type-sample { color: var(--ink); }
+
+/* A variants */
+.a-h1   { font-family: 'Inter', sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.2; }
+.a-h2   { font-family: 'Inter', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.3; color: var(--purple); }
+.a-h3   { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.4; }
+.a-label { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: var(--ink); }
+.a-body  { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 400; color: var(--slate); line-height: 1.6; }
+.a-body-sm { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 400; color: var(--subtle); }
+
+/* B variants */
+.b-h1   { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.2; }
+.b-h2   { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.3; color: var(--purple); }
+.b-h3   { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.4; }
+.b-label { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: var(--ink); }
+.b-body  { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 400; color: var(--slate); line-height: 1.6; }
+.b-body-sm { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 400; color: var(--subtle); }
+
+.scale-divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+/* mono showcase */
+.mono-row { margin-top: 4px; }
+.mono-sample { font-family: var(--mono); font-size: 12px; color: var(--ink); }
+.mono-sm-sample { font-family: var(--mono); font-size: 10px; color: var(--subtle); }
+
+/* ─── EMPTY STATE COMPARISON ─── */
+.empty-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 1280px;
+  margin: 0 auto 40px;
+}
+.empty-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.empty-panel-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--subtle);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  display: flex; align-items: center; gap: 8px;
+}
+.empty-panel-label .tag { background: var(--lavender); color: var(--deep); border-radius: 100px; padding: 2px 8px; font-size: 10px; font-weight: 600; }
+.empty-panel-label .tag.current { background: #F1F5F9; color: var(--slate); }
+.empty-body {
+  padding: 48px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+.empty-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  background: var(--lavender);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+.a .empty-heading { font-family: 'Inter', sans-serif; font-size: 18px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
+.b .empty-heading { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
+.empty-sub { font-family: 'Inter', sans-serif; font-size: 13px; color: var(--slate); max-width: 260px; line-height: 1.6; }
+.empty-btn {
+  margin-top: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px; font-weight: 600;
+  background: var(--purple); color: #fff;
+  padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<p class="page-label">Typography Comparison — FeedMgmt / Hanno</p>
+
+<!-- ═══ SECTION 1: APP SHELL ═══ -->
+<div class="comparison">
+
+  <!-- OPTION A: All Inter -->
+  <div class="panel a">
+    <div class="panel-label">Option A — Current <span class="tag current">All Inter</span></div>
+    <div class="app-shell">
+      <nav class="sidebar">
+        <div class="sidebar-header">
+          <div class="logo-mark">H</div>
+          <span class="logo-name">FeedMgmt</span>
+        </div>
+        <div class="sidebar-body">
+          <div class="nav-section-label">Data Sources</div>
+          <div class="nav-item active">📄 Summer 2026 — Footwear</div>
+          <div class="nav-item">📄 Clearance Items</div>
+          <div class="nav-item" style="font-size:11px;color:var(--purple);font-weight:600;gap:4px;">+ Add source</div>
+          <div style="height:1px;background:var(--border);margin:8px 0;"></div>
+          <div class="nav-section-label">Platform Syncs</div>
+          <div class="nav-item" style="font-weight:600;color:var(--ink);font-size:12px;">🛍 Google Shopping <span class="dot" style="margin-left:auto;"></span></div>
+          <div class="nav-item sub active">Summer Footwear</div>
+          <div class="nav-item sub" style="color:var(--slate);">All Products</div>
+          <div class="nav-item" style="font-size:11px;color:var(--purple);font-weight:600;">+ New sync</div>
+          <div style="height:1px;background:var(--border);margin:8px 0;"></div>
+          <div class="nav-item" style="font-weight:600;color:var(--ink);font-size:12px;">🟦 Meta Catalog <span class="dot" style="margin-left:auto;"></span></div>
+          <div class="nav-item sub" style="color:var(--slate);">All Products</div>
+        </div>
+      </nav>
+      <div class="content">
+        <div class="topbar">
+          <span class="page-title">Summer 2026 — Footwear</span>
+          <span class="breadcrumb">/ Data Sources</span>
+          <div class="topbar-actions">
+            <button class="btn btn-secondary">↑ Re-upload</button>
+            <button class="btn btn-primary">✦ Feed Assistant</button>
+          </div>
+        </div>
+        <div class="transform-strip">
+          <span class="strip-pill">8 transformations</span>
+          <span>applied · click to review</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--slate);">Last run 2 min ago</span>
+        </div>
+        <div class="tabs">
+          <div class="tab active">Transformed</div>
+          <div class="tab">Original</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th><th>Title</th><th>Price</th><th>Availability</th><th>Condition</th><th>Brand</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono">SKU-001-BLK</td>
+                <td class="label">Men's Trail Runner — Black</td>
+                <td class="mono">$89.99</td>
+                <td><span class="badge badge-green">in_stock</span></td>
+                <td><span class="badge badge-blue">new</span></td>
+                <td class="label">Altra</td>
+              </tr>
+              <tr>
+                <td class="mono">SKU-002-WHT</td>
+                <td class="label">Women's Road Shoe — White</td>
+                <td class="mono">$124.00</td>
+                <td><span class="badge badge-green">in_stock</span></td>
+                <td><span class="badge badge-blue">new</span></td>
+                <td class="label">Brooks</td>
+              </tr>
+              <tr>
+                <td class="mono">SKU-003-RED</td>
+                <td class="label">Kids' Sneaker — Red/White</td>
+                <td class="mono">$44.99</td>
+                <td><span class="badge badge-amber">preorder</span></td>
+                <td><span class="badge badge-blue">new</span></td>
+                <td class="label">Nike</td>
+              </tr>
+              <tr>
+                <td class="mono">SKU-004-GRN</td>
+                <td class="label">Hiking Boot — Forest Green</td>
+                <td class="mono">$199.00</td>
+                <td><span class="badge badge-green">in_stock</span></td>
+                <td><span class="badge badge-blue">new</span></td>
+                <td class="label">Salomon</td>
+              </tr>
+              <tr>
+                <td class="mono">SKU-005-BRN</td>
+                <td class="label">Leather Oxford — Cognac</td>
+                <td class="mono">$279.00</td>
+                <td><span class="badge badge-green">in_stock</span></td>
+                <td><span class="badge badge-blue">new</span></td>
+                <td class="label">Allen Edmonds</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="chat">
+          <div class="chat-header">
+            <span class="chat-title">Feed Assistant</span>
+            <span style="color:var(--border);">·</span>
+            <span class="chat-ctx">Summer 2026 — Footwear</span>
+          </div>
+          <div class="chat-body">
+            <input class="chat-input" placeholder="Standardize brand names, fix title casing, strip promo text…" readonly>
+            <button class="btn btn-primary">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION B: Plus Jakarta Sans headings + Inter body -->
+  <div class="panel b">
+    <div class="panel-label">Option B — Proposed <span class="tag">Plus Jakarta Sans headings · Inter body</span></div>
+    <div class="app-shell">
+      <nav class="sidebar">
+        <div class="sidebar-header">
+          <div class="logo-mark">H</div>
+          <span class="logo-name">FeedMgmt</span>
+        </div>
+        <div class="sidebar-body">
+          <div class="nav-section-label">Data Sources</div>
+          <div class="nav-item active">📄 Summer 2026 — Footwear</div>
+          <div class="nav-item">📄 Clearance Items</div>
+          <div class="nav-item" style="font-size:11px;color:var(--purple);font-weight:600;gap:4px;">+ Add source</div>
+          <div style="height:1px;background:var(--border);margin:8px 0;"></div>
+          <div class="nav-section-label">Platform Syncs</div>
+          <div class="nav-item" style="font-weight:600;color:var(--ink);font-size:12px;">🛍 Google Shopping <span class="dot" style="margin-left:auto;"></span></div>
+          <div class="nav-item sub active">Summer Footwear</div>
+          <div class="nav-item sub" style="color:var(--slate);">All Products</div>
+          <div class="nav-item" style="font-size:11px;color:var(--purple);font-weight:600;">+ New sync</div>
+          <div style="height:1px;background:var(--border);margin:8px 0;"></div>
+          <div class="nav-item" style="font-weight:600;color:var(--ink);font-size:12px;">🟦 Meta Catalog <span class="dot" style="margin-left:auto;"></span></div>
+          <div class="nav-item sub" style="color:var(--slate);">All Products</div>
+        </div>
+      </nav>
+      <div class="content">
+        <div class="topbar">
+          <span class="page-title">Summer 2026 — Footwear</span>
+          <span class="breadcrumb">/ Data Sources</span>
+          <div class="topbar-actions">
+            <button class="btn btn-secondary">↑ Re-upload</button>
+            <button class="btn btn-primary">✦ Feed Assistant</button>
+          </div>
+        </div>
+        <div class="transform-strip">
+          <span class="strip-pill">8 transformations</span>
+          <span>applied · click to review</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--slate);">Last run 2 min ago</span>
+        </div>
+        <div class="tabs">
+          <div class="tab active">Transformed</div>
+          <div class="tab">Original</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th><th>Title</th><th>Price</th><th>Availability</th><th>Condition</th><th>Brand</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono">SKU-001-BLK</td>
+                <td class="label">Men's Trail Runner — Black</td>
+                <td class="mono">$89.99</td>
+                <td><span class="badge badge-green">in_stock</span></td>
+                <td><span class="badge badge-blue">new</span></td>
+                <td class="label">Altra</td>
+              </tr>
+              <tr>
+                <td class="mono">SKU-002-WHT</td>
+                <td class="label">Women's Road Shoe — White</td>
+                <td class="mono">$124.00</td>
+                <td><span class="badge badge-green">in_stock</span></td>
+                <td><span class="badge badge-blue">new</span></td>
+                <td class="label">Brooks</td>
+              </tr>
+              <tr>
+                <td class="mono">SKU-003-RED</td>
+                <td class="label">Kids' Sneaker — Red/White</td>
+                <td class="mono">$44.99</td>
+                <td><span class="badge badge-amber">preorder</span></td>
+                <td><span class="badge badge-blue">new</span></td>
+                <td class="label">Nike</td>
+              </tr>
+              <tr>
+                <td class="mono">SKU-004-GRN</td>
+                <td class="label">Hiking Boot — Forest Green</td>
+                <td class="mono">$199.00</td>
+                <td><span class="badge badge-green">in_stock</span></td>
+                <td><span class="badge badge-blue">new</span></td>
+                <td class="label">Salomon</td>
+              </tr>
+              <tr>
+                <td class="mono">SKU-005-BRN</td>
+                <td class="label">Leather Oxford — Cognac</td>
+                <td class="mono">$279.00</td>
+                <td><span class="badge badge-green">in_stock</span></td>
+                <td><span class="badge badge-blue">new</span></td>
+                <td class="label">Allen Edmonds</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="chat">
+          <div class="chat-header">
+            <span class="chat-title">Feed Assistant</span>
+            <span style="color:var(--border);">·</span>
+            <span class="chat-ctx">Summer 2026 — Footwear</span>
+          </div>
+          <div class="chat-body">
+            <input class="chat-input" placeholder="Standardize brand names, fix title casing, strip promo text…" readonly>
+            <button class="btn btn-primary">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ SECTION 2: TYPE SCALE ═══ -->
+<div class="section-divider">Type Scale — Side by Side</div>
+
+<div class="scale-grid">
+  <!-- A Scale -->
+  <div class="scale-panel a">
+    <div class="scale-panel-label">Option A <span class="tag current">All Inter</span></div>
+
+    <div class="type-row">
+      <div class="type-token">H1 · Inter 700 · 28px · −0.03em</div>
+      <div class="type-sample a-h1">Navigate Growth.</div>
+    </div>
+    <div class="type-row">
+      <div class="type-token">H2 · Inter 700 · 20px · −0.02em · Electric Purple</div>
+      <div class="type-sample a-h2">Data Sources</div>
+    </div>
+    <div class="type-row">
+      <div class="type-token">H3 · Inter 600 · 16px · −0.01em</div>
+      <div class="type-sample a-h3">Summer 2026 — Footwear</div>
+    </div>
+
+    <div class="scale-divider"></div>
+
+    <div class="type-row">
+      <div class="type-token">Label · Inter 600 · 13px</div>
+      <div class="type-sample a-label">Sync schedule · Active rules · Export feed</div>
+    </div>
+    <div class="type-row">
+      <div class="type-token">Body · Inter 400 · 13px · 1.6 leading · Slate</div>
+      <div class="type-sample a-body">Your product feed is clean and ready to export. 1,240 products after deduplication, 8 transformations applied.</div>
+    </div>
+    <div class="type-row">
+      <div class="type-token">Body-sm · Inter 400 · 12px · Subtle</div>
+      <div class="type-sample a-body-sm">Last synced 2 minutes ago · 1,240 products</div>
+    </div>
+
+    <div class="scale-divider"></div>
+
+    <div class="type-row">
+      <div class="type-token">Mono · JetBrains Mono 400 · 12px · data values</div>
+      <div class="mono-sample">SKU-001-BLK · $89.99 · 7841209300123</div>
+    </div>
+    <div class="type-row">
+      <div class="type-token">Mono-sm · JetBrains Mono 400 · 10px · Subtle</div>
+      <div class="mono-sm-sample">availability = "in_stock" AND price > 10</div>
+    </div>
+  </div>
+
+  <!-- B Scale -->
+  <div class="scale-panel b">
+    <div class="scale-panel-label">Option B <span class="tag">Plus Jakarta Sans headings · Inter body</span></div>
+
+    <div class="type-row">
+      <div class="type-token">H1 · Plus Jakarta Sans 700 · 28px · −0.03em</div>
+      <div class="type-sample b-h1">Navigate Growth.</div>
+    </div>
+    <div class="type-row">
+      <div class="type-token">H2 · Plus Jakarta Sans 700 · 20px · −0.02em · Electric Purple</div>
+      <div class="type-sample b-h2">Data Sources</div>
+    </div>
+    <div class="type-row">
+      <div class="type-token">H3 · Plus Jakarta Sans 600 · 16px · −0.01em</div>
+      <div class="type-sample b-h3">Summer 2026 — Footwear</div>
+    </div>
+
+    <div class="scale-divider"></div>
+
+    <div class="type-row">
+      <div class="type-token">Label · Inter 600 · 13px (unchanged)</div>
+      <div class="type-sample b-label">Sync schedule · Active rules · Export feed</div>
+    </div>
+    <div class="type-row">
+      <div class="type-token">Body · Inter 400 · 13px · 1.6 leading · Slate (unchanged)</div>
+      <div class="type-sample b-body">Your product feed is clean and ready to export. 1,240 products after deduplication, 8 transformations applied.</div>
+    </div>
+    <div class="type-row">
+      <div class="type-token">Body-sm · Inter 400 · 12px · Subtle (unchanged)</div>
+      <div class="type-sample b-body-sm">Last synced 2 minutes ago · 1,240 products</div>
+    </div>
+
+    <div class="scale-divider"></div>
+
+    <div class="type-row">
+      <div class="type-token">Mono · JetBrains Mono 400 · 12px (unchanged)</div>
+      <div class="mono-sample">SKU-001-BLK · $89.99 · 7841209300123</div>
+    </div>
+    <div class="type-row">
+      <div class="type-token">Mono-sm · JetBrains Mono 400 · 10px (unchanged)</div>
+      <div class="mono-sm-sample">availability = "in_stock" AND price > 10</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 3: EMPTY STATE ═══ -->
+<div class="section-divider">Empty State — Heading Impact</div>
+
+<div class="empty-grid">
+  <div class="empty-panel a">
+    <div class="empty-panel-label">Option A <span class="tag current">All Inter</span></div>
+    <div class="empty-body">
+      <div class="empty-icon">📦</div>
+      <div class="empty-heading">Upload your first product feed</div>
+      <div class="empty-sub">Import a CSV from your Shopify export or any product catalog. FeedMgmt will map your columns and clean your data automatically.</div>
+      <button class="empty-btn">↑ Upload CSV</button>
+    </div>
+  </div>
+
+  <div class="empty-panel b">
+    <div class="empty-panel-label">Option B <span class="tag">Plus Jakarta Sans</span></div>
+    <div class="empty-body">
+      <div class="empty-icon">📦</div>
+      <div class="empty-heading">Upload your first product feed</div>
+      <div class="empty-sub">Import a CSV from your Shopify export or any product catalog. FeedMgmt will map your columns and clean your data automatically.</div>
+      <button class="empty-btn">↑ Upload CSV</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

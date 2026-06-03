@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FeedMgmt — Assistant-first IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --ink: #0F172A; --slate: #64748B; --subtle: #94A3B8;
+    --border: #E2E8F0; --surface: #fff; --bg: #F8FAFC;
+    --purple: #7C3AED; --lavender: #EDE9FE; --deep: #4C1D95; --violet: #A78BFA;
+    --error: #EF4444; --warn: #F59E0B; --success: #10B981;
+    --font: 'Inter', sans-serif; --mono: 'JetBrains Mono', monospace;
+  }
+  body { font-family: var(--font); background: var(--bg); color: var(--ink); font-size: 13px; display: flex; height: 100vh; overflow: hidden; }
+
+  /* ── SIDEBAR ── */
+  nav { width: 220px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+  .nav-header { padding: 15px 14px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 9px; }
+  .logo-mark { width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0; background: linear-gradient(135deg, #4C1D95, #7C3AED); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 800; }
+  .logo-name { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; }
+  .nav-body { flex: 1; padding: 8px 10px; overflow-y: auto; }
+  .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--subtle); padding: 10px 8px 4px; }
+  .source-item { padding: 7px 10px; border-radius: 8px; cursor: pointer; margin-bottom: 1px; transition: background 0.1s; }
+  .source-item:hover { background: var(--bg); }
+  .source-item.active { background: var(--lavender); }
+  .source-name { font-size: 13px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+  .source-item.active .source-name { color: var(--deep); font-weight: 600; }
+  .source-meta { font-family: var(--mono); font-size: 10px; color: var(--subtle); display: flex; align-items: center; gap: 4px; }
+  .err-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--error); flex-shrink: 0; }
+  .err-t { color: var(--error); font-weight: 600; }
+  .add-btn { display: flex; align-items: center; gap: 6px; font-family: var(--font); font-size: 12px; font-weight: 600; color: var(--purple); padding: 6px 10px; margin: 5px 0; border-radius: 7px; cursor: pointer; border: 1.5px solid var(--lavender); background: var(--lavender); width: 100%; transition: all 0.15s; }
+  .add-btn:hover { background: #DDD6FE; border-color: var(--violet); }
+  .nav-div { height: 1px; background: var(--border); margin: 6px 0; }
+  .chan-item { padding: 7px 10px; border-radius: 8px; cursor: pointer; margin-bottom: 1px; display: flex; align-items: center; justify-content: space-between; transition: all 0.1s; }
+  .chan-item:hover { background: var(--bg); }
+  .chan-left { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--slate); }
+  .chan-icon { font-size: 12px; opacity: 0.5; width: 16px; text-align: center; }
+  .ch-badge { font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 100px; background: var(--bg); color: var(--subtle); border: 1px solid var(--border); }
+  .ch-badge.ok { background: #F0FDF4; color: var(--success); border-color: transparent; }
+  .ch-badge.err { background: #FEF2F2; color: var(--error); border-color: transparent; }
+  .nav-footer { padding: 10px; border-top: 1px solid var(--border); }
+  .nav-foot-item { font-size: 13px; color: var(--slate); padding: 6px 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.1s; margin-bottom: 2px; }
+  .nav-foot-item:hover { background: var(--bg); color: var(--ink); }
+  .nav-user { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 8px; cursor: pointer; transition: background 0.1s; }
+  .nav-user:hover { background: var(--bg); }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--lavender); color: var(--deep); font-size: 10px; font-weight: 700; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .uname { font-size: 12px; font-weight: 600; color: var(--ink); }
+  .usub { font-size: 11px; color: var(--subtle); }
+
+  /* ── MAIN ── */
+  main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+  .topbar { height: 52px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 10px; flex-shrink: 0; }
+  .topbar-title { flex: 1; }
+  .page-title { font-size: 15px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
+  .page-sub { font-family: var(--mono); font-size: 11px; color: var(--subtle); margin-top: 1px; }
+  .topbar-actions { display: flex; gap: 6px; align-items: center; }
+  .btn { font-family: var(--font); font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: 7px; cursor: pointer; border: none; letter-spacing: -0.01em; transition: all 0.1s; display: inline-flex; align-items: center; gap: 5px; }
+  .btn-primary { background: var(--purple); color: #fff; }
+  .btn-primary:hover { background: #6D28D9; }
+  .btn-ghost { background: transparent; color: var(--slate); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--bg); color: var(--ink); }
+
+  /* Tab bar */
+  .tab-bar { height: 40px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: stretch; padding: 0 20px; flex-shrink: 0; }
+  .vtab { font-size: 13px; font-weight: 500; color: var(--subtle); padding: 0 14px; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 7px; cursor: pointer; transition: all 0.1s; white-space: nowrap; }
+  .vtab:hover { color: var(--ink); }
+  .vtab.active { color: var(--purple); border-bottom-color: var(--purple); font-weight: 600; }
+  .tab-spacer { flex: 1; }
+  .filter-btn { display: flex; align-items: center; gap: 5px; font-family: var(--font); font-size: 12px; font-weight: 500; color: var(--slate); padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; align-self: center; transition: all 0.1s; }
+  .filter-btn:hover { border-color: var(--ink); color: var(--ink); }
+  .filter-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--error); }
+
+  /* Transformation status strip — clearly clickable, full width */
+  .tx-strip {
+    display: flex; align-items: center; gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer; flex-shrink: 0;
+    transition: background 0.1s;
+    user-select: none;
+  }
+  .tx-strip:hover { background: #FAFAFF; }
+  .tx-strip-left {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 20px; flex: 1;
+  }
+  .tx-icon { width: 20px; height: 20px; border-radius: 5px; background: var(--lavender); display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+  .tx-summary { font-size: 12px; font-weight: 600; color: var(--deep); }
+  .tx-detail { font-size: 11px; color: var(--slate); }
+  .tx-strip-right { padding: 8px 20px; display: flex; align-items: center; gap: 6px; }
+  .tx-action { font-size: 12px; font-weight: 500; color: var(--purple); }
+  .tx-chevron { font-size: 10px; color: var(--subtle); transition: transform 0.2s; }
+  .tx-strip.open .tx-chevron { transform: rotate(180deg); }
+  .tx-sep { width: 1px; height: 28px; background: var(--border); }
+  .tx-issues { display: flex; align-items: center; gap: 12px; padding: 0 20px; }
+  .tx-issue-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--subtle); white-space: nowrap; }
+  .tx-issue-item.e { color: var(--error); }
+  .tx-issue-item.w { color: var(--warn); }
+
+  /* Transformation rules panel */
+  .tx-panel { background: #FAFAFF; border-bottom: 1px solid var(--border); overflow: hidden; transition: max-height 0.25s ease; flex-shrink: 0; }
+  .tx-panel.open { max-height: 220px; }
+  .tx-panel.closed { max-height: 0; }
+  .tx-panel-inner { padding: 12px 20px 14px; }
+  .tx-panel-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .tx-panel-title { font-size: 11px; font-weight: 600; color: var(--ink); letter-spacing: 0.02em; }
+  .tx-panel-hint { font-size: 11px; color: var(--subtle); }
+  .tx-rules { display: flex; flex-direction: column; gap: 5px; overflow-y: auto; max-height: 160px; }
+  .tx-rule { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 6px; background: var(--surface); border: 1px solid var(--border); }
+  .tx-rule-label { font-size: 12px; color: var(--ink); flex: 1; }
+  .tx-rule-count { font-family: var(--mono); font-size: 10px; color: var(--subtle); white-space: nowrap; }
+  .tx-origin { font-size: 10px; padding: 1px 6px; border-radius: 100px; background: var(--bg); color: var(--subtle); border: 1px solid var(--border); white-space: nowrap; }
+  .tx-origin.ai { background: var(--lavender); color: var(--deep); border-color: transparent; }
+  .tog { width: 28px; height: 16px; background: var(--border); border-radius: 100px; position: relative; cursor: pointer; transition: background 0.15s; flex-shrink: 0; }
+  .tog.on { background: var(--purple); }
+  .tog-t { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; background: #fff; border-radius: 50%; transition: left 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+  .tog.on .tog-t { left: 14px; }
+
+  /* Table */
+  .table-wrap { flex: 1; overflow: auto; min-height: 0; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { position: sticky; top: 0; background: var(--bg); z-index: 5; }
+  th { font-size: 11px; font-weight: 600; color: var(--subtle); letter-spacing: 0.02em; text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--border); }
+  th:first-child { width: 36px; padding: 7px 10px 7px 20px; }
+  td { padding: 0 12px; height: 38px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  td:first-child { padding: 0 10px 0 20px; }
+  tr:hover td { background: #F8F9FF; }
+  tr.dim td { opacity: 0.45; }
+  .id { font-family: var(--mono); font-size: 11px; color: var(--subtle); }
+  .tc { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink); }
+  .price { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+  input[type="checkbox"] { accent-color: var(--purple); width: 13px; height: 13px; cursor: pointer; }
+  .st { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 100px; }
+  .st .d { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .ok { color: #065F46; background: #D1FAE5; } .ok .d { background: var(--success); }
+  .er { color: #991B1B; background: #FEE2E2; } .er .d { background: var(--error); }
+  .wn { color: #92400E; background: #FEF3C7; } .wn .d { background: var(--warn); }
+  .mu { color: var(--subtle); background: var(--bg); border: 1px solid var(--border); font-weight: 400; } .mu .d { background: var(--subtle); }
+  .ai-mark { font-size: 10px; color: var(--purple); font-weight: 600; background: var(--lavender); padding: 1px 5px; border-radius: 3px; }
+
+  /* ── FEED ASSISTANT ── */
+  .chat-wrap { border-top: 2px solid var(--lavender); background: var(--surface); display: flex; flex-direction: column; flex-shrink: 0; height: 310px; transition: height 0.2s ease; }
+  .chat-wrap.collapsed { height: 42px; overflow: hidden; }
+
+  .chat-topbar { height: 42px; padding: 0 16px 0 20px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
+  .chat-icon { width: 22px; height: 22px; border-radius: 6px; background: var(--purple); color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .chat-label { font-size: 13px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; }
+  .chat-ctx { font-size: 11px; color: var(--subtle); font-family: var(--mono); }
+  .chat-spacer { flex: 1; }
+  .chat-collapse-btn { font-size: 11px; color: var(--subtle); padding: 4px 8px; border-radius: 5px; cursor: pointer; border: 1px solid var(--border); background: var(--bg); transition: all 0.1s; }
+  .chat-collapse-btn:hover { color: var(--ink); }
+
+  .chat-body { flex: 1; overflow-y: auto; padding: 14px 20px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+
+  /* Structured assistant message */
+  .msg-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; max-width: 88%; }
+  .msg-card-section { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .msg-card-section:last-child { border-bottom: none; }
+  .msg-card-heading { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 7px; }
+  .mch-ok { color: var(--success); }
+  .mch-warn { color: var(--warn); }
+  .mch-purple { color: var(--purple); }
+  .msg-card-items { display: flex; flex-direction: column; gap: 4px; }
+  .mci { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--slate); line-height: 1.5; }
+  .mci-bullet { flex-shrink: 0; margin-top: 1px; }
+  .mci .n { font-family: var(--mono); font-weight: 600; color: var(--ink); }
+  .mci-action { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; font-size: 11px; font-weight: 600; color: var(--purple); cursor: pointer; }
+  .mci-action:hover { text-decoration: underline; }
+
+  .mrow { display: flex; flex-direction: column; gap: 2px; }
+  .mrole { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--subtle); }
+  .mbub { font-size: 13px; line-height: 1.5; padding: 8px 12px; border-radius: 8px; max-width: 82%; }
+  .mrow.u { align-items: flex-end; }
+  .mrow.u .mbub { background: var(--purple); color: #fff; }
+  .mrow.a .mbub { background: var(--bg); color: var(--ink); border: 1px solid var(--border); }
+  .mpre { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; margin-top: 6px; font-family: var(--mono); font-size: 11px; color: var(--slate); line-height: 1.7; }
+  .mpre b { font-family: var(--font); font-size: 11px; font-weight: 600; color: var(--ink); display: block; margin-bottom: 4px; }
+  .del { color: var(--error); text-decoration: line-through; }
+  .ins { color: var(--success); }
+  .mbtns { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+  .mb { font-family: var(--font); font-size: 11px; font-weight: 500; padding: 5px 10px; border-radius: 5px; cursor: pointer; border: none; transition: all 0.1s; }
+  .mbp { background: var(--purple); color: #fff; }
+  .mbg { background: var(--bg); color: var(--slate); border: 1px solid var(--border); }
+
+  /* Suggestions */
+  .chat-suggestions { padding: 8px 20px 0; display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; border-top: 1px solid var(--border); }
+  .sug-label { font-size: 11px; font-weight: 600; color: var(--subtle); letter-spacing: 0.04em; text-transform: uppercase; align-self: center; white-space: nowrap; }
+  .sug { font-size: 12px; color: var(--slate); padding: 5px 12px; border-radius: 100px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; font-family: var(--font); transition: all 0.15s; white-space: nowrap; }
+  .sug:hover { border-color: var(--purple); color: var(--deep); background: var(--lavender); }
+
+  .chat-input-area { padding: 8px 20px 12px; flex-shrink: 0; }
+  .ci-row { display: flex; gap: 8px; align-items: center; }
+  .ci { flex: 1; font-family: var(--font); font-size: 14px; color: var(--ink); background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; padding: 9px 14px; outline: none; transition: all 0.15s; }
+  .ci:focus { border-color: var(--purple); background: #fff; box-shadow: 0 0 0 3px rgba(124,58,237,0.1); }
+  .ci::placeholder { color: var(--subtle); }
+  .ci-send { width: 40px; height: 40px; background: var(--purple); border: none; border-radius: 10px; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; transition: background 0.1s; }
+  .ci-send:hover { background: #6D28D9; }
+  .ci-hint { font-size: 11px; color: var(--subtle); margin-top: 5px; padding: 0 2px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav>
+  <div class="nav-header">
+    <div class="logo-mark">H</div>
+    <div class="logo-name">FeedMgmt</div>
+  </div>
+  <div class="nav-body">
+    <div class="nav-label">Data Sources</div>
+    <div class="source-item active">
+      <div class="source-name">Summer 2026 — Footwear</div>
+      <div class="source-meta"><span class="err-dot"></span><span class="err-t">3 issues</span><span>·</span><span>48,312 rows</span></div>
+    </div>
+    <div class="source-item">
+      <div class="source-name">Winter 2025 — Accessories</div>
+      <div class="source-meta">12,847 rows · clean</div>
+    </div>
+    <div class="source-item">
+      <div class="source-name">Clearance — All</div>
+      <div class="source-meta"><span class="err-dot"></span><span class="err-t">1 issue</span><span>·</span><span>3,204 rows</span></div>
+    </div>
+    <div style="padding:5px 0 2px;"><button class="add-btn">+ Add data source</button></div>
+    <div class="nav-div"></div>
+    <div class="nav-label">Platform Channels</div>
+    <div class="chan-item">
+      <div class="chan-left"><span class="chan-icon">↓</span>Google Shopping</div>
+      <span class="ch-badge ok">Ready</span>
+    </div>
+    <div class="chan-item">
+      <div class="chan-left"><span class="chan-icon">↓</span>Meta Catalog</div>
+      <span class="ch-badge err">3 issues</span>
+    </div>
+  </div>
+  <div class="nav-footer">
+    <div class="nav-foot-item"><span style="opacity:0.5;width:16px;text-align:center;">⚙</span> Settings</div>
+    <div class="nav-user">
+      <div class="avatar">JW</div>
+      <div><div class="uname">Justin Wong</div><div class="usub">wongjustin@gmail.com</div></div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main>
+  <div class="topbar">
+    <div class="topbar-title">
+      <div class="page-title">Summer 2026 — Footwear</div>
+      <div class="page-sub">Data source · 48,312 rows · synced 2h ago &nbsp;·&nbsp; <span style="color:var(--error);font-weight:600;">3 errors</span> &nbsp;·&nbsp; <span style="color:var(--warn);font-weight:600;">12 warnings</span></div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <div class="vtab active">Transformed</div>
+    <div class="vtab">Original</div>
+    <div class="tab-spacer"></div>
+    <button class="filter-btn">
+      <span class="filter-dot"></span>
+      Filter <span style="font-size:10px;opacity:0.6;">▾</span>
+    </button>
+  </div>
+
+  <!-- Transformation status strip — full-width clickable row -->
+  <div class="tx-strip" id="txStrip" onclick="toggleTxPanel()">
+    <div class="tx-strip-left">
+      <div class="tx-icon">✦</div>
+      <div>
+        <div class="tx-summary">8 transformations applied automatically</div>
+        <div class="tx-detail">Dedup, format fixes, abbreviation expansion, whitespace cleanup · 48,312 rows processed</div>
+      </div>
+    </div>
+    <div class="tx-strip-right">
+      <span class="tx-action">View rules</span>
+      <span class="tx-chevron">▾</span>
+    </div>
+  </div>
+
+  <!-- Transformation rules panel -->
+  <div class="tx-panel closed" id="txPanel">
+    <div class="tx-panel-inner">
+      <div class="tx-panel-hdr">
+        <div class="tx-panel-title">Active transformation rules</div>
+        <div class="tx-panel-hint">Toggle to enable / disable · ask the Feed Assistant to add new rules</div>
+      </div>
+      <div class="tx-rules">
+        <div class="tx-rule">
+          <div class="tog on"><div class="tog-t"></div></div>
+          <div class="tx-rule-label">Expand color abbreviations in titles (BLK → Black, WHT → White, RED → Red)</div>
+          <div class="tx-rule-count">12,840 rows</div>
+          <div class="tx-origin ai">AI</div>
+        </div>
+        <div class="tx-rule">
+          <div class="tog on"><div class="tog-t"></div></div>
+          <div class="tx-rule-label">Remove duplicate product IDs — keep first occurrence</div>
+          <div class="tx-rule-count">14 removed</div>
+          <div class="tx-origin ai">AI</div>
+        </div>
+        <div class="tx-rule">
+          <div class="tog on"><div class="tog-t"></div></div>
+          <div class="tx-rule-label">Normalize price to 2 decimal places</div>
+          <div class="tx-rule-count">3,201 rows</div>
+          <div class="tx-origin ai">AI</div>
+        </div>
+        <div class="tx-rule">
+          <div class="tog on"><div class="tog-t"></div></div>
+          <div class="tx-rule-label">Standardize availability values → "in_stock" / "out_of_stock"</div>
+          <div class="tx-rule-count">48,312 rows</div>
+          <div class="tx-origin ai">AI</div>
+        </div>
+        <div class="tx-rule">
+          <div class="tog on"><div class="tog-t"></div></div>
+          <div class="tx-rule-label">Trim whitespace from all text fields</div>
+          <div class="tx-rule-count">891 rows</div>
+          <div class="tx-origin ai">AI</div>
+        </div>
+        <div class="tx-rule">
+          <div class="tog"><div class="tog-t"></div></div>
+          <div class="tx-rule-label">Suppress products with price below $5.00</div>
+          <div class="tx-rule-count">0 rows</div>
+          <div class="tx-origin">Manual</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table (data preview — no Platforms column) -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th><input type="checkbox"></th>
+          <th>Product ID</th>
+          <th>Title</th>
+          <th>Price</th>
+          <th>Availability</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><input type="checkbox"></td>
+          <td><span class="id">SKU-AJ1-RED-10</span></td>
+          <td><div class="tc">Air Jordan 1 Retro High OG "Chicago" — Men's US 10</div></td>
+          <td><span class="price">$180.00</span></td>
+          <td><span style="font-size:12px;color:var(--slate);">in_stock</span></td>
+          <td><span class="st ok"><span class="d"></span>Ready</span></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox"></td>
+          <td><span class="id">SKU-NMD-BLK-9</span></td>
+          <td><div class="tc"><span class="ai-mark">✦</span> Adidas NMD_R1 — Core Black / Cloud White — Men's US 9</div></td>
+          <td><span class="price">$130.00</span></td>
+          <td><span style="font-size:12px;color:var(--slate);">in_stock</span></td>
+          <td><span class="st er"><span class="d"></span>Missing GTIN</span></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox"></td>
+          <td><span class="id">SKU-UB22-WHT-8</span></td>
+          <td><div class="tc"><span class="ai-mark">✦</span> Adidas Ultraboost 22 Running Shoe — Cloud White</div></td>
+          <td><span class="price">$190.00</span></td>
+          <td><span style="font-size:12px;color:var(--slate);">in_stock</span></td>
+          <td><span class="st ok"><span class="d"></span>Ready</span></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox"></td>
+          <td><span class="id">SKU-990V5-GRY-11</span></td>
+          <td><div class="tc">New Balance 990v5 Made in USA — Castlerock Grey</div></td>
+          <td><span class="price">$185.00</span></td>
+          <td><span style="font-size:12px;color:var(--slate);">in_stock</span></td>
+          <td><span class="st ok"><span class="d"></span>Ready</span></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox"></td>
+          <td><span class="id">SKU-CLOU-WHT-9</span></td>
+          <td><div class="tc">On Running Cloudflow 4 — Men's US 9 — All White / Lightweight...</div></td>
+          <td><span class="price">$159.99</span></td>
+          <td><span style="font-size:12px;color:var(--slate);">in_stock</span></td>
+          <td><span class="st wn"><span class="d"></span>Title too long</span></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox"></td>
+          <td><span class="id">SKU-SAMBA-WHT-8</span></td>
+          <td><div class="tc"><span class="ai-mark">✦</span> Adidas Samba OG — Cloud White / Core Black</div></td>
+          <td><span class="price">$100.00</span></td>
+          <td><span style="font-size:12px;color:var(--slate);">in_stock</span></td>
+          <td><span class="st ok"><span class="d"></span>Ready</span></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox"></td>
+          <td><span class="id">SKU-TN-BLK-10</span></td>
+          <td><div class="tc">Nike Air Max TN — Triple Black — Men's US 10</div></td>
+          <td><span class="price">$155.00</span></td>
+          <td><span style="font-size:12px;color:var(--slate);">in_stock</span></td>
+          <td><span class="st ok"><span class="d"></span>Ready</span></td>
+        </tr>
+        <tr class="dim">
+          <td><input type="checkbox"></td>
+          <td><span class="id">SKU-VAN-SK8-RED-9</span></td>
+          <td><div class="tc">Vans Sk8-Hi — True White / Racing Red — Men's US 9</div></td>
+          <td><span class="price">$80.00</span></td>
+          <td><span style="font-size:12px;color:var(--subtle);">in_stock</span></td>
+          <td><span class="st mu"><span class="d"></span>Suppressed</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- FEED ASSISTANT -->
+  <div class="chat-wrap" id="chatWrap">
+    <div class="chat-topbar">
+      <div class="chat-icon">✦</div>
+      <div class="chat-label">Feed Assistant</div>
+      <div class="chat-ctx">· Summer 2026 — Footwear</div>
+      <div class="chat-spacer"></div>
+      <button class="chat-collapse-btn" onclick="toggleChat()">Collapse ▼</button>
+    </div>
+
+    <div class="chat-body" id="chatBody">
+
+      <!-- Structured assistant message — what ran, what needs attention, what's next -->
+      <div class="mrow a">
+        <div class="mrole">Feed Assistant</div>
+        <div class="msg-card">
+
+          <div class="msg-card-section">
+            <div class="msg-card-heading mch-ok">
+              <span>✓</span> Applied automatically
+            </div>
+            <div class="msg-card-items">
+              <div class="mci"><span class="mci-bullet">·</span><span>Expanded color abbreviations in <span class="n">12,840</span> titles (BLK → Black, WHT → White)</span></div>
+              <div class="mci"><span class="mci-bullet">·</span><span>Removed <span class="n">14</span> duplicate product IDs</span></div>
+              <div class="mci"><span class="mci-bullet">·</span><span>Normalized availability values across all <span class="n">48,312</span> rows</span></div>
+              <div class="mci"><span class="mci-bullet">·</span><span>Fixed price formatting and trimmed whitespace</span></div>
+            </div>
+          </div>
+
+          <div class="msg-card-section">
+            <div class="msg-card-heading mch-warn">
+              <span>▲</span> Needs attention
+            </div>
+            <div class="msg-card-items">
+              <div class="mci"><span class="mci-bullet">·</span><span><span class="n">18</span> products have inconsistent condition values ("New", "NEW", "new"). <span class="mci-action">Standardize →</span></span></div>
+              <div class="mci"><span class="mci-bullet">·</span><span><span class="n">5</span> products have missing or broken image URLs. <span class="mci-action">Review →</span></span></div>
+            </div>
+          </div>
+
+          <div class="msg-card-section">
+            <div class="msg-card-heading mch-purple">
+              <span>✦</span> Recommended next
+            </div>
+            <div class="msg-card-items">
+              <div class="mci"><span class="mci-bullet">·</span><span><span class="n">240</span> products are missing the brand field — fill it in for a more complete dataset</span></div>
+              <div class="mci"><span class="mci-bullet">·</span><span><span class="n">34</span> products have no description — add one or ask me to generate them</span></div>
+              <div class="mci"><span class="mci-bullet">·</span><span>Size format is inconsistent — "US 10", "10", "US10" all appear across <span class="n">1,240</span> rows. <span class="mci-action">Normalize →</span></span></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /chat-body -->
+
+    <div class="chat-input-area">
+      <div class="ci-row">
+        <input class="ci" placeholder="Ask the assistant to fix, transform, or explain anything…">
+        <button class="ci-send">↑</button>
+      </div>
+      <div class="ci-hint">Changes are previewed before applying · all edits logged and reversible</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  function toggleTxPanel() {
+    const panel = document.getElementById('txPanel');
+    const strip = document.getElementById('txStrip');
+    const isOpen = panel.classList.contains('open');
+    panel.classList.toggle('open', !isOpen);
+    panel.classList.toggle('closed', isOpen);
+    strip.classList.toggle('open', !isOpen);
+  }
+  function toggleChat() {
+    const wrap = document.getElementById('chatWrap');
+    const btn = document.querySelector('.chat-collapse-btn');
+    const collapsed = wrap.classList.toggle('collapsed');
+    btn.textContent = collapsed ? 'Expand ▲' : 'Collapse ▼';
+  }
+</script>
+</body>
+</html>
