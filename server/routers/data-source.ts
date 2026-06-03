@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import Papa from "papaparse";
 
 export const dataSourceRouter = createTRPCRouter({
   list: protectedProcedure.query(async ({ ctx }) => {
@@ -73,6 +75,117 @@ export const dataSourceRouter = createTRPCRouter({
 
       if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
       return data;
+    }),
+
+  runPipeline: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const service = createServiceClient();
+
+      // Fetch the data source (verify ownership)
+      const { data: source, error: srcErr } = await ctx.supabase
+        .from("data_sources")
+        .select("*")
+        .eq("id", input.id)
+        .eq("merchant_id", ctx.user.id)
+        .single();
+
+      if (srcErr || !source) throw new TRPCError({ code: "NOT_FOUND" });
+
+      // Mark as running
+      await ctx.supabase
+        .from("data_sources")
+        .update({ pipeline_status: "running" })
+        .eq("id", input.id);
+
+      try {
+        // Download CSV from storage
+        const { data: fileData, error: dlErr } = await service.storage
+          .from("feeds")
+          .download(source.storage_path);
+
+        if (dlErr || !fileData) throw new Error(dlErr?.message ?? "Download failed");
+
+        const csvText = await fileData.text();
+        const mapping: Record<string, string> = source.column_mapping ?? {};
+
+        // Parse CSV
+        const parsed = Papa.parse<Record<string, string>>(csvText, {
+          header: true,
+          skipEmptyLines: true,
+        });
+
+        if (parsed.errors.length > 0 && parsed.data.length === 0) {
+          throw new Error("CSV parse failed: " + parsed.errors[0].message);
+        }
+
+        // Clear existing canonical products for this source
+        await service
+          .from("canonical_products")
+          .delete()
+          .eq("source_id", input.id);
+
+        // Build canonical rows — store the full original row in data,
+        // keyed by source column name so both tabs work
+        const BATCH = 500;
+        const rows = parsed.data;
+
+        for (let i = 0; i < rows.length; i += BATCH) {
+          const batch = rows.slice(i, i + BATCH).map((row, offset) => {
+            const validationIssues: { field: string; message: string }[] = [];
+
+            // Check required canonical fields are mapped and non-empty
+            for (const [canonical, sourceCol] of Object.entries(mapping)) {
+              if (!sourceCol) continue;
+              const val = row[sourceCol];
+              if (
+                ["id", "title", "price", "availability"].includes(canonical) &&
+                (!val || val.trim() === "")
+              ) {
+                validationIssues.push({
+                  field: canonical,
+                  message: `Missing required field: ${canonical}`,
+                });
+              }
+            }
+
+            return {
+              source_id: input.id,
+              merchant_id: ctx.user.id,
+              row_index: i + offset,
+              data: row,
+              dedup_status: "kept",
+              validation_issues: validationIssues,
+            };
+          });
+
+          const { error: insertErr } = await service
+            .from("canonical_products")
+            .insert(batch);
+
+          if (insertErr) throw new Error(insertErr.message);
+        }
+
+        // Mark done
+        await service
+          .from("data_sources")
+          .update({
+            pipeline_status: "done",
+            pipeline_last_run_at: new Date().toISOString(),
+          })
+          .eq("id", input.id);
+
+        return { rowCount: rows.length };
+      } catch (e) {
+        await service
+          .from("data_sources")
+          .update({ pipeline_status: "error" })
+          .eq("id", input.id);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: e instanceof Error ? e.message : "Pipeline failed",
+        });
+      }
     }),
 
   delete: protectedProcedure

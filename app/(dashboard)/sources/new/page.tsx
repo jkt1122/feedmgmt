@@ -26,6 +26,7 @@ export default function NewSourcePage() {
   const supabase = createClient();
   const createSource = trpc.dataSource.create.useMutation();
   const updateMapping = trpc.dataSource.updateMapping.useMutation();
+  const runPipeline = trpc.dataSource.runPipeline.useMutation();
 
   const [step, setStep] = useState<Step>("upload");
   const [sourceName, setSourceName] = useState("");
@@ -99,8 +100,9 @@ export default function NewSourcePage() {
   const handleSaveMapping = async () => {
     if (!createdId) return;
     await updateMapping.mutateAsync({ id: createdId, columnMapping: mapping });
+    await runPipeline.mutateAsync({ id: createdId });
     setStep("done");
-    setTimeout(() => router.push(`/sources/${createdId}`), 1000);
+    setTimeout(() => router.push(`/sources/${createdId}`), 800);
   };
 
   if (step === "done") {
@@ -242,11 +244,11 @@ export default function NewSourcePage() {
 
           <Button
             onClick={handleSaveMapping}
-            disabled={updateMapping.isPending}
+            disabled={updateMapping.isPending || runPipeline.isPending}
             className="w-full bg-electric hover:bg-accent-hover text-white font-semibold"
           >
-            {updateMapping.isPending ? "Saving…" : "Save mapping & view data"}
-            {!updateMapping.isPending && <ArrowRight className="w-4 h-4 ml-2" />}
+            {runPipeline.isPending ? "Importing products…" : updateMapping.isPending ? "Saving…" : "Save mapping & import"}
+            {!updateMapping.isPending && !runPipeline.isPending && <ArrowRight className="w-4 h-4 ml-2" />}
           </Button>
         </div>
       )}

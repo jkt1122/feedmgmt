@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { CANONICAL_FIELDS } from "@/lib/canonical-fields";
+import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 
 type DataSource = {
   id: string;
@@ -27,12 +30,18 @@ type Product = {
 
 export function SourceView({
   source,
-  products,
+  products: initialProducts,
 }: {
   source: DataSource;
   products: Product[];
 }) {
+  const router = useRouter();
   const [tab, setTab] = useState<"transformed" | "original">("transformed");
+  const products = initialProducts;
+
+  const runPipeline = trpc.dataSource.runPipeline.useMutation({
+    onSuccess: () => router.refresh(),
+  });
 
   const mappedFields = Object.entries(source.column_mapping ?? {})
     .filter(([, v]) => v)
@@ -57,6 +66,15 @@ export function SourceView({
             <p className="text-sm text-slate mt-0.5">{source.original_filename}</p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              onClick={() => runPipeline.mutate({ id: source.id })}
+              disabled={runPipeline.isPending || source.pipeline_status === "running"}
+              variant="outline"
+              className="h-8 text-xs font-semibold gap-1.5"
+            >
+              <RefreshCw className={cn("w-3.5 h-3.5", runPipeline.isPending && "animate-spin")} />
+              {runPipeline.isPending ? "Importing…" : "Re-run pipeline"}
+            </Button>
             <Badge
               className={cn(
                 "text-xs font-semibold",
