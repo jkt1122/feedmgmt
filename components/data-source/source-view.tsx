@@ -92,7 +92,7 @@ export function SourceView({
               className="h-8 text-xs font-semibold gap-1.5"
             >
               <RefreshCw className={cn("w-3.5 h-3.5", runPipeline.isPending && "animate-spin")} />
-              {runPipeline.isPending ? "Importing…" : "Re-run pipeline"}
+              {runPipeline.isPending ? "Running…" : "Re-run pipeline"}
             </Button>
             <Badge
               className={cn(
@@ -174,7 +174,11 @@ export function SourceView({
           </TabsList>
         </div>
 
-        <TabsContent value="transformed" className="flex-1 overflow-auto m-0 p-0">
+        <TabsContent value="transformed" className="flex-1 m-0 p-0 flex flex-col min-h-0 overflow-hidden">
+          <PipelinePanel
+            sourceId={source.id}
+            onRulesApplied={() => runPipeline.mutate({ id: source.id })}
+          />
           {products.length === 0 ? (
             <EmptyState />
           ) : (
@@ -206,14 +210,10 @@ export function SourceView({
         </TabsContent>
       </Tabs>
 
-      <PipelinePanel
-        sourceId={source.id}
-        onRulesApplied={() => runPipeline.mutate({ id: source.id })}
-      />
-
       <FeedChat
         sourceId={source.id}
         onDataChanged={invalidateProducts}
+        onRulesApplied={() => runPipeline.mutate({ id: source.id })}
       />
     </div>
   );
