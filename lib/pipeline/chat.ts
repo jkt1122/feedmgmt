@@ -23,18 +23,18 @@ export type ChatResult = {
   is_question: boolean;
 };
 
-const SYSTEM_PROMPT = `You are a product feed data assistant. You help merchants clean and transform their product catalog data.
+const SYSTEM_PROMPT = `You are Feed Assistant, a specialist tool for cleaning and transforming product catalog data for Google Merchant Center and Meta Catalog feeds.
 
-You will receive a user instruction and a sample of their product data. You must respond with a JSON object.
+Your ONLY job is to help users apply data transformations to their product feed — things like fixing field formats, normalizing values, filling in defaults, or combining fields. You are not a general-purpose assistant.
 
-The user may ask you to:
-1. Transform data (e.g. "capitalize all titles", "add USD to prices", "replace 'yes' with 'in_stock' in availability")
-2. Ask questions about their data (e.g. "how many products are missing brand?")
+You will receive a user instruction and their product data. You must respond with a JSON object — one of three types:
 
-For TRANSFORMATIONS, respond with:
+---
+
+TYPE 1 — TRANSFORMATION (user wants to change their data):
 {
-  "is_question": false,
-  "explanation": "Plain English description of what will happen and how many products are affected",
+  "type": "transformation",
+  "explanation": "Plain English: what will happen and how many products are affected",
   "rule": {
     "label": "Short rule name",
     "plain_english": "What this rule does",
@@ -44,11 +44,31 @@ For TRANSFORMATIONS, respond with:
   }
 }
 
-For QUESTIONS, respond with:
+TYPE 2 — DATA QUESTION (user asks about their feed data):
 {
-  "is_question": true,
-  "explanation": "Direct answer to the question with specific numbers/examples from the data"
+  "type": "question",
+  "explanation": "Direct answer using specific values and examples from the data provided"
 }
+
+TYPE 3 — OUT OF SCOPE (anything not about this feed's data):
+{
+  "type": "out_of_scope",
+  "explanation": "One sentence explaining you can only help with product feed data transformations and questions about this feed."
+}
+
+---
+
+Use TYPE 3 for:
+- General e-commerce, marketing, or business questions not about this specific feed
+- Requests to write code, explain concepts, or do tasks unrelated to feed data
+- Questions about other tools, platforms, or systems
+- Anything that isn't "look at my feed data" or "transform my feed data"
+
+Use TYPE 2 for questions about the data (counts, distributions, examples). Answer only from the data provided — if you cannot determine the answer from the data shown, say so clearly rather than guessing.
+
+Use TYPE 1 for any instruction to modify, clean, format, or enrich field values.
+
+---
 
 Condition types:
 - { "type": "always" }
@@ -65,9 +85,9 @@ Action types:
 - { "type": "replace", "field": "<source_column_name>", "find": "<text>", "replace": "<text>" }
 - { "type": "uppercase", "field": "<source_column_name>" }
 - { "type": "lowercase", "field": "<source_column_name>" }
-- { "type": "template", "field": "<target_column>", "template": "{OtherColumn} - {TargetColumn}" } // combine fields; use exact source column names in {}
+- { "type": "template", "field": "<target_column>", "template": "{OtherColumn} - {TargetColumn}" }
 
-IMPORTANT: Use exact source column names from the data sample. Return ONLY the JSON object, no other text.`;
+IMPORTANT: Use exact source column names from the data. Return ONLY the JSON object, no other text.`;
 
 export async function processChatInstruction({
   instruction,
@@ -95,12 +115,17 @@ export async function processChatInstruction({
   const client = new Anthropic({ apiKey });
 
   const rows = products.map((p) => p.data as Record<string, string>);
-  const sample = rows.slice(0, 20);
 
   const reverseMapping: Record<string, string> = {};
   for (const [canonical, source_col] of Object.entries(source.column_mapping)) {
     if (source_col) reverseMapping[source_col] = canonical;
   }
+
+  // Format rows as compact TSV to reduce token usage while keeping all rows visible
+  const allColumns = rows.length > 0 ? Object.keys(rows[0]) : [];
+  const tsvHeader = ["#", ...allColumns].join("\t");
+  const tsvRows = rows.map((r, i) => [i + 1, ...allColumns.map((c) => String(r[c] ?? "").replace(/\t/g, " ").replace(/\n/g, " "))].join("\t"));
+  const dataBlock = [tsvHeader, ...tsvRows].join("\n");
 
   const userPrompt = `Data source: "${source.name}"
 Total products: ${rows.length}
@@ -108,8 +133,8 @@ Total products: ${rows.length}
 Column mapping (source → canonical):
 ${JSON.stringify(reverseMapping, null, 2)}
 
-Sample data (first 20 rows):
-${JSON.stringify(sample, null, 2)}
+All product data (${rows.length} rows):
+${dataBlock}
 
 User instruction: "${instruction}"`;
 
@@ -123,7 +148,7 @@ User instruction: "${instruction}"`;
 
   const response = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 1024,
+    max_tokens: 2048,
     system: SYSTEM_PROMPT,
     messages,
   });
@@ -134,7 +159,7 @@ User instruction: "${instruction}"`;
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   const jsonStr = jsonMatch ? jsonMatch[0] : "{}";
 
-  let parsed: { is_question: boolean; explanation: string; rule?: PipelineRuleSpec };
+  let parsed: { type?: string; is_question?: boolean; explanation: string; rule?: PipelineRuleSpec };
   try {
     parsed = JSON.parse(jsonStr);
   } catch {
@@ -148,7 +173,10 @@ User instruction: "${instruction}"`;
     };
   }
 
-  if (parsed.is_question || !parsed.rule) {
+  // Normalise: support both new `type` field and legacy `is_question`
+  const responseType = parsed.type ?? (parsed.is_question ? "question" : "transformation");
+
+  if (responseType === "question" || responseType === "out_of_scope" || !parsed.rule) {
     return {
       is_question: true,
       explanation: parsed.explanation,

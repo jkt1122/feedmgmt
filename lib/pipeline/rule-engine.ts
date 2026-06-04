@@ -76,7 +76,7 @@ function applyAction(
       break;
     case "replace_map": {
       const val = (r[action.field] ?? "").toLowerCase().trim();
-      r[action.field] = action.map[val] ?? r[action.field];
+      r[action.field] = action.map[val] ?? r[action.field] ?? "";
       break;
     }
     case "set_default":
