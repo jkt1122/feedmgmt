@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { runSyncPipeline } from "@/lib/pipeline/sync-runner";
 import { exportGoogleTSV, exportMetaCSV, getExportFilename } from "@/lib/pipeline/export";
 
 export async function GET(
@@ -17,30 +16,32 @@ export async function GET(
 
   const { data: sync } = await service
     .from("platform_syncs")
-    .select("*")
+    .select("id, name, platform, column_mapping, pipeline_status")
     .eq("id", id)
     .eq("merchant_id", user.id)
     .single();
 
   if (!sync) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const result = await runSyncPipeline({
-    serviceClient: service,
-    sync: {
-      id: sync.id,
-      merchant_id: sync.merchant_id,
-      platform: sync.platform,
-      source_ids: sync.source_ids,
-      filter_rules: sync.filter_rules ?? [],
-      disabled_default_rules: sync.disabled_default_rules ?? [],
-    },
-  });
+  if (sync.pipeline_status === "idle") {
+    return NextResponse.json({ error: "Run the sync first before exporting." }, { status: 400 });
+  }
+
+  const { data: products } = await service
+    .from("sync_products")
+    .select("data")
+    .eq("sync_id", id)
+    .eq("merchant_id", user.id)
+    .order("row_index", { ascending: true });
+
+  const rows = (products ?? []).map((p) => p.data as Record<string, string>);
+  const columnMapping = (sync.column_mapping ?? {}) as Record<string, string>;
 
   const content = sync.platform === "google_shopping"
-    ? exportGoogleTSV(result.rows, result.columnMapping)
-    : exportMetaCSV(result.rows, result.columnMapping);
+    ? exportGoogleTSV(rows, columnMapping)
+    : exportMetaCSV(rows, columnMapping);
 
   const filename = getExportFilename(sync.name, sync.platform);
 
-  return NextResponse.json({ content, filename, rowCount: result.rows.length });
+  return NextResponse.json({ content, filename, rowCount: rows.length });
 }

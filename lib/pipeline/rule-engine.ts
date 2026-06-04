@@ -108,6 +108,13 @@ function applyAction(
         return (r[colName] ?? "").trim();
       });
       break;
+    case "truncate": {
+      const val = r[action.field] ?? "";
+      if (val.length > action.max_length) {
+        r[action.field] = val.slice(0, action.max_length - 1) + "…";
+      }
+      break;
+    }
   }
   return r;
 }

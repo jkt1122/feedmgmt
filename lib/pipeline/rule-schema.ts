@@ -23,6 +23,7 @@ export const RuleActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("normalize_price"), field: z.string().min(1) }),
   z.object({ type: z.literal("flag_issue"), field: z.string().min(1), message: z.string().min(1) }),
   z.object({ type: z.literal("template"), field: z.string().min(1), template: z.string().min(1) }),
+  z.object({ type: z.literal("truncate"), field: z.string().min(1), max_length: z.number().int().positive() }),
 ]);
 
 export const PipelineRuleSpecSchema = z.object({

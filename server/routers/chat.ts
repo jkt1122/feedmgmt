@@ -269,7 +269,6 @@ export const chatRouter = createTRPCRouter({
           platform: sync.platform,
           source_ids: sync.source_ids,
           filter_rules: sync.filter_rules ?? [],
-          disabled_default_rules: sync.disabled_default_rules ?? [],
         },
       });
 
