@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { RefreshCw, Download, AlertTriangle, X } from "lucide-react";
+import { RefreshCw, Download, AlertTriangle, X, Trash2, Settings } from "lucide-react";
 import { CANONICAL_FIELDS } from "@/lib/canonical-fields";
 import { SyncRulesPanel } from "./sync-rules-panel";
 import { SyncChat } from "./sync-chat";
+import { SyncEditDialog } from "./sync-edit-dialog";
 
 type PlatformSync = {
   id: string;
@@ -14,25 +16,38 @@ type PlatformSync = {
   platform: "google_shopping" | "meta_catalog";
   source_ids: string[];
   filter_rules: unknown[];
-  schedule: string;
   pipeline_status: string;
   last_run_at: string | null;
-  disabled_default_rules: string[];
+  column_mapping: Record<string, string>;
+  last_product_count: number | null;
+  last_filtered_out: number | null;
+  recommendations_seen: boolean;
 };
 
-export function SyncView({ sync }: { sync: PlatformSync }) {
+export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
+  const router = useRouter();
   const utils = trpc.useUtils();
+  const [sync, setSync] = useState(initialSync);
   const [issueBannerDismissed, setIssueBannerDismissed] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
-  const { data: productsData, refetch: refetchProducts } = trpc.sync.getProducts.useQuery(
-    { id: sync.id },
-    { enabled: true }
-  );
+  const { data: productsData, refetch: refetchProducts } = trpc.sync.getProducts.useQuery({ id: sync.id });
+  const { data: sourceIssues = [] } = trpc.sync.getSourceIssues.useQuery({ syncId: sync.id });
 
   const runSync = trpc.sync.run.useMutation({
     onSuccess: () => {
       utils.sync.get.invalidate({ id: sync.id });
+      utils.sync.getRules.invalidate({ syncId: sync.id });
+      utils.sync.getRecommendations.invalidate({ syncId: sync.id });
       refetchProducts();
+    },
+  });
+
+  const deleteSync = trpc.sync.delete.useMutation({
+    onSuccess: async () => {
+      await utils.sync.list.invalidate();
+      router.push("/sources");
     },
   });
 
@@ -52,18 +67,17 @@ export function SyncView({ sync }: { sync: PlatformSync }) {
   const platformLabel = sync.platform === "google_shopping" ? "Google Shopping" : "Meta Catalog";
   const rows: Record<string, string>[] = productsData?.rows ?? [];
   const preTransformRows: Record<string, string>[] = productsData?.preTransformRows ?? [];
-  const issueCount = productsData ? Object.keys(productsData.issuesByRow).length : 0;
-  const totalRows = productsData?.totalRows ?? 0;
-  const filteredOut = productsData?.filteredOutCount ?? 0;
+  const totalRows = productsData?.totalRows ?? sync.last_product_count ?? 0;
+  const filteredOut = productsData?.filteredOutCount ?? sync.last_filtered_out ?? 0;
+  const neverRun = productsData?.neverRun ?? sync.pipeline_status === "idle";
+
+  const columnMapping = productsData?.columnMapping ?? sync.column_mapping ?? {};
+  const visibleFields = CANONICAL_FIELDS.filter((f) => columnMapping[f.key]);
 
   const lastRun = sync.last_run_at
     ? new Date(sync.last_run_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " " +
       new Date(sync.last_run_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
-    : "Never";
-
-  // All canonical fields that have a mapped column in this sync's sources
-  const columnMapping = productsData?.columnMapping ?? {};
-  const visibleFields = CANONICAL_FIELDS.filter((f) => columnMapping[f.key]);
+    : null;
 
   return (
     <div className="flex flex-col h-full">
@@ -74,20 +88,27 @@ export function SyncView({ sync }: { sync: PlatformSync }) {
             {sync.name}
             <span className={cn(
               "text-xs font-bold px-1.5 py-0.5 rounded",
-              sync.platform === "google_shopping"
-                ? "bg-blue-50 text-blue-700"
-                : "bg-lavender text-deep"
+              sync.platform === "google_shopping" ? "bg-blue-50 text-blue-700" : "bg-lavender text-deep"
             )}>
               {platformLabel}
             </span>
           </div>
           <div className="text-xs text-slate font-mono mt-0.5">
-            {totalRows > 0 ? `~${totalRows.toLocaleString()} products` : "—"}
-            {filteredOut > 0 && ` · ${filteredOut.toLocaleString()} filtered out`}
-            {sync.last_run_at && ` · synced ${lastRun}`}
+            {neverRun
+              ? "Not yet run"
+              : `~${totalRows.toLocaleString()} products${filteredOut > 0 ? ` · ${filteredOut.toLocaleString()} filtered out` : ""}${lastRun ? ` · synced ${lastRun}` : ""}`
+            }
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setEditOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-border bg-background text-slate hover:text-ink hover:bg-surface transition-colors"
+          >
+            <Settings className="w-3 h-3" />
+            Edit setup
+          </button>
           <button
             type="button"
             onClick={() => runSync.mutate({ id: sync.id })}
@@ -100,52 +121,78 @@ export function SyncView({ sync }: { sync: PlatformSync }) {
           <button
             type="button"
             onClick={handleExport}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-electric text-white hover:bg-electric/90 transition-colors"
+            disabled={neverRun}
+            className={cn(
+              "inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors",
+              neverRun
+                ? "bg-border text-slate cursor-not-allowed"
+                : "bg-electric text-white hover:bg-electric/90"
+            )}
           >
             <Download className="w-3 h-3" />
             Export feed
           </button>
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="p-1.5 text-slate hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+            title="Delete sync"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
-      {/* Issue banner */}
-      {!issueBannerDismissed && issueCount > 0 && (
+      {/* Source issues banner (wired to real data) */}
+      {!issueBannerDismissed && sourceIssues.length > 0 && (
         <div className="flex items-center gap-3 px-5 py-2 bg-amber-50 border-b border-amber-200 flex-shrink-0">
           <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
           <span className="text-xs text-amber-900 flex-1">
-            <strong>{issueCount.toLocaleString()} products</strong> have platform-specific issues (missing fields, spec violations) that may affect feed approval.
+            {sourceIssues.map((src, i) => (
+              <span key={src.sourceId}>
+                {i > 0 && " · "}
+                <strong>{src.sourceName}</strong> has{" "}
+                <strong>{src.count.toLocaleString()} products</strong> with issues
+                {src.sample.length > 0 && ` (${src.sample.slice(0, 2).join(", ")})`}
+              </span>
+            ))}
+            {" · "}
+            <a href="/sources" className="font-semibold underline">Review in data sources →</a>
           </span>
-          <button
-            type="button"
-            onClick={() => setIssueBannerDismissed(true)}
-            className="text-amber-600 hover:text-amber-800 p-0.5"
-          >
+          <button type="button" onClick={() => setIssueBannerDismissed(true)} className="text-amber-600 hover:text-amber-800 p-0.5">
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      {/* Rules panel */}
+      {/* Rules panel — accepted/custom rules */}
       <SyncRulesPanel
         syncId={sync.id}
         platform={sync.platform}
-        disabledDefaultRules={sync.disabled_default_rules ?? []}
-        onRulesChanged={() => refetchProducts()}
+        disabledDefaultRules={[]}
+        onRulesChanged={() => runSync.mutate({ id: sync.id })}
       />
 
       {/* Table */}
       <div className="flex-1 overflow-auto min-h-0">
-        {rows.length === 0 ? (
+        {neverRun ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-slate">
             <div className="text-3xl opacity-20">📦</div>
-            <p className="text-sm">No products yet — run the sync to process your sources.</p>
+            <p className="text-sm font-medium text-ink">Sync has not run yet</p>
+            <p className="text-xs text-slate">Run the sync to process your sources and see the platform-ready feed.</p>
             <button
               type="button"
               onClick={() => runSync.mutate({ id: sync.id })}
-              className="text-xs font-semibold text-electric hover:underline"
+              disabled={runSync.isPending}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-electric px-4 py-2 rounded-lg hover:bg-electric/90 transition-colors disabled:opacity-50"
             >
-              Run sync now →
+              <RefreshCw className={cn("w-3 h-3", runSync.isPending && "animate-spin")} />
+              {runSync.isPending ? "Running…" : "Run sync now"}
             </button>
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full gap-2 text-slate">
+            <p className="text-sm">No products matched your filter rules.</p>
           </div>
         ) : (
           <table className="min-w-full border-collapse text-sm">
@@ -168,16 +215,13 @@ export function SyncView({ sync }: { sync: PlatformSync }) {
               {rows.map((row, i) => {
                 const pre = preTransformRows[i] ?? {};
                 const issues = (productsData?.issuesByRow as Record<string, { field: string; message: string }[]>)?.[String(i)];
-                const hasIssues = issues && issues.length > 0;
                 const issueFields = new Set((issues ?? []).map((e) => e.field));
                 return (
                   <tr key={i} className={cn(
                     "border-b border-border hover:bg-mist transition-colors",
-                    hasIssues && "bg-red-50/30"
+                    issues && issues.length > 0 && "bg-red-50/30"
                   )}>
-                    <td className="px-3 h-9">
-                      <input type="checkbox" className="accent-electric w-3 h-3" />
-                    </td>
+                    <td className="px-3 h-9"><input type="checkbox" className="accent-electric w-3 h-3" /></td>
                     <td className="px-3 h-9 text-xs text-slate font-mono">{i + 1}</td>
                     {visibleFields.map((f) => {
                       const val = row[f.key] ?? "";
@@ -191,10 +235,8 @@ export function SyncView({ sync }: { sync: PlatformSync }) {
                           className={cn(
                             "px-3 h-9 max-w-xs truncate",
                             isDataField ? "font-mono text-xs" : "text-sm",
-                            hasFieldIssue
-                              ? "text-red-700 bg-red-50/60"
-                              : changed
-                              ? "text-green-700 bg-green-50/60"
+                            hasFieldIssue ? "text-red-700 bg-red-50/60"
+                              : changed ? "text-green-700 bg-green-50/60"
                               : "text-ink"
                           )}
                           title={val || undefined}
@@ -216,8 +258,52 @@ export function SyncView({ sync }: { sync: PlatformSync }) {
         syncId={sync.id}
         syncName={sync.name}
         platform={sync.platform}
-        onRulesChanged={() => refetchProducts()}
+        recommendationsSeen={sync.recommendations_seen}
+        onRulesChanged={() => runSync.mutate({ id: sync.id })}
       />
+
+      {/* Edit dialog */}
+      {editOpen && (
+        <SyncEditDialog
+          sync={sync}
+          onClose={() => setEditOpen(false)}
+          onSaved={(updated) => {
+            setSync({ ...sync, ...updated });
+            setEditOpen(false);
+            runSync.mutate({ id: sync.id });
+          }}
+        />
+      )}
+
+      {/* Delete confirmation modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="bg-surface rounded-2xl border border-border shadow-xl w-full max-w-sm p-6">
+            <h2 className="text-base font-bold text-ink mb-1">Delete sync?</h2>
+            <p className="text-sm text-slate mb-5 leading-relaxed">
+              <strong>&ldquo;{sync.name}&rdquo;</strong> and all its optimizations will be permanently deleted.
+              Your source data is not affected.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                className="text-sm font-medium text-slate hover:text-ink px-4 py-2 rounded-lg border border-border hover:bg-background transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteSync.mutate({ id: sync.id })}
+                disabled={deleteSync.isPending}
+                className="text-sm font-semibold text-destructive-foreground bg-destructive hover:opacity-90 px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {deleteSync.isPending ? "Deleting…" : "Delete sync"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

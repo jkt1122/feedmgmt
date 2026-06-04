@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChevronRight, X } from "lucide-react";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 
 type FilterRule = {
   field: string;
@@ -40,7 +41,6 @@ export function SyncSetupWizard({
   const [name, setName] = useState("");
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [filterRules, setFilterRules] = useState<FilterRule[]>([]);
-  const [schedule, setSchedule] = useState<"every_6h" | "every_12h" | "every_24h">("every_12h");
 
   const createSync = trpc.sync.create.useMutation({
     onSuccess: async (sync) => {
@@ -82,7 +82,6 @@ export function SyncSetupWizard({
       platform,
       source_ids: selectedSources,
       filter_rules: validFilters,
-      schedule,
     });
   };
 
@@ -115,8 +114,8 @@ export function SyncSetupWizard({
             Set up a {platformLabel} sync
           </h2>
           <p className="text-sm text-slate leading-relaxed">
-            Give it a name, pick your data sources, add any filters, and choose how often to run.
-            Platform-specific rules are applied automatically based on {platformLabel} specs.
+            Give it a name, pick your data sources, and add any filters.
+            After creating, the Feed Assistant will suggest platform-specific rules for you to review.
           </p>
         </div>
 
@@ -230,7 +229,7 @@ export function SyncSetupWizard({
                   <button
                     type="button"
                     onClick={() => removeFilter(i)}
-                    className="text-slate hover:text-error p-1 rounded transition-colors"
+                    className="text-slate hover:text-red-600 p-1 rounded transition-colors"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -244,52 +243,6 @@ export function SyncSetupWizard({
             >
               + Add filter
             </button>
-          </div>
-        </div>
-
-        {/* Step 3: Schedule */}
-        <div className="bg-surface border border-border rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-border">
-            <div className="text-xs font-bold uppercase tracking-wide text-slate mb-1">Step 3</div>
-            <div className="text-sm font-bold text-ink mb-0.5">Sync schedule</div>
-            <div className="text-xs text-slate">Choose how often this sync should re-run.</div>
-          </div>
-          <div className="px-5 py-4">
-            <div className="flex flex-col gap-2">
-              {(["every_6h", "every_12h", "every_24h"] as const).map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setSchedule(opt)}
-                  className={cn(
-                    "flex items-start gap-3 px-4 py-3 rounded-lg border text-left transition-all",
-                    schedule === opt
-                      ? "border-electric bg-lavender"
-                      : "border-border bg-background hover:border-slate/40"
-                  )}
-                >
-                  <input
-                    type="radio"
-                    readOnly
-                    checked={schedule === opt}
-                    className="accent-electric w-4 h-4 flex-shrink-0 mt-0.5"
-                  />
-                  <div>
-                    <div className={cn(
-                      "text-sm font-semibold",
-                      schedule === opt ? "text-deep" : "text-ink"
-                    )}>
-                      {opt === "every_6h" ? "Every 6 hours" : opt === "every_12h" ? "Every 12 hours" : "Every 24 hours"}
-                    </div>
-                    <div className="text-xs text-slate mt-0.5">
-                      {opt === "every_6h" && "Best for fast-moving inventory"}
-                      {opt === "every_12h" && "Good balance for most stores"}
-                      {opt === "every_24h" && "Low-frequency, stable catalog"}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
           </div>
         </div>
 
@@ -307,13 +260,13 @@ export function SyncSetupWizard({
                 : "bg-border text-slate cursor-not-allowed"
             )}
           >
-            {createSync.isPending ? "Saving…" : "Save sync"}
+            {createSync.isPending ? "Creating sync…" : "Create sync"}
             {!createSync.isPending && <ChevronRight className="w-4 h-4" />}
           </button>
         </div>
 
         {createSync.error && (
-          <div className="text-xs text-error bg-error/5 border border-error/20 rounded-lg px-4 py-2">
+          <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
             {createSync.error.message}
           </div>
         )}
