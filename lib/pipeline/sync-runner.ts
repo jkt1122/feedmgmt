@@ -92,7 +92,7 @@ export async function runSyncPipeline({
   });
 
   // 3. Apply filter rules
-  const filtered = applyFilterRules(deduped, sync.filter_rules, columnMapping);
+  const filtered = applyFilterRules(deduped, sync.filter_rules);
   const filteredOutCount = deduped.length - filtered.length;
 
   // Snapshot before any platform transforms (for diff/color-coding in UI)
@@ -150,15 +150,14 @@ export async function runSyncPipeline({
 
 function applyFilterRules(
   rows: Record<string, string>[],
-  filters: FilterRule[],
-  columnMapping: Record<string, string>
+  filters: FilterRule[]
 ): Record<string, string>[] {
   if (!filters || filters.length === 0) return rows;
 
   return rows.filter((row) =>
     filters.every((f) => {
-      const col = columnMapping[f.field] ?? f.field;
-      const val = (row[col] ?? "").trim();
+      // Rows use canonical keys directly — no mapping lookup needed
+      const val = (row[f.field] ?? "").trim();
       switch (f.operator) {
         case "is": return val.toLowerCase() === f.value.toLowerCase();
         case "is_not": return val.toLowerCase() !== f.value.toLowerCase();
