@@ -44,9 +44,6 @@ IMPORTANT:
 Already handled automatically (do not suggest these):
 ${DEFAULT_RULE_LABELS.map((l) => `- ${l}`).join("\n")}`;
 
-function buildSystemPrompt(): string {
-  return SYSTEM_PROMPT;
-}
 
 export async function analyzeDataForRules(
   rows: Record<string, string>[],

@@ -75,7 +75,7 @@ export function FeedChat({
   });
 
   const saveRules = trpc.pipeline.saveRules.useMutation({
-    onSuccess: (_, vars) => {
+    onSuccess: () => {
       onRulesApplied?.();
       onDataChanged();
     },
@@ -94,7 +94,8 @@ export function FeedChat({
     if (open && !sessionId) {
       getOrCreate.mutate({ contextType: "source", contextId: sourceId });
     }
-  }, [open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, sourceId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });

@@ -12,6 +12,7 @@ import {
 
 export function PipelinePanel({
   sourceId,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onRulesApplied,
 }: {
   sourceId: string;
