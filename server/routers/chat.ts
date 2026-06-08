@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { processChatInstruction } from "@/lib/pipeline/chat";
 import { runPipelineTransform } from "@/lib/pipeline/runner";
 import { runSyncPipeline } from "@/lib/pipeline/sync-runner";
+import { runSyncAudit } from "@/lib/pipeline/audit";
 import { PipelineRuleSpecSchema } from "@/lib/pipeline/rule-schema";
 import type { PipelineRuleSpec } from "@/lib/pipeline/rule-schema";
 
@@ -311,6 +312,103 @@ export const chatRouter = createTRPCRouter({
           role: "assistant",
           content: assistantContent,
           payload: chatResult,
+        })
+        .select()
+        .single();
+
+      return assistantMsg;
+    }),
+
+  saveAuditRule: protectedProcedure
+    .input(z.object({
+      syncId: z.string().uuid(),
+      rule: PipelineRuleSpecSchema,
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { data: savedRule, error } = await ctx.supabase
+        .from("pipeline_rules")
+        .insert({
+          sync_id: input.syncId,
+          source_id: null,
+          merchant_id: ctx.user.id,
+          label: input.rule.label,
+          plain_english: input.rule.plain_english,
+          stage: input.rule.stage,
+          conditions: input.rule.condition,
+          actions: input.rule.action,
+          enabled: true,
+          sort_order: 999,
+          origin: "ai_recommended",
+        })
+        .select()
+        .single();
+
+      if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+      return { ruleId: savedRule.id };
+    }),
+
+  runSyncAudit: protectedProcedure
+    .input(z.object({ syncId: z.string().uuid(), sessionId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const service = createServiceClient();
+
+      const { data: sync } = await ctx.supabase
+        .from("platform_syncs")
+        .select("*")
+        .eq("id", input.syncId)
+        .eq("merchant_id", ctx.user.id)
+        .single();
+
+      if (!sync) throw new TRPCError({ code: "NOT_FOUND" });
+
+      // Save user message
+      await ctx.supabase.from("chat_messages").insert({
+        session_id: input.sessionId,
+        role: "user",
+        content: "Audit my feed",
+      });
+
+      // Load persisted sync products (fast path — no pipeline re-run)
+      const { data: syncProducts } = await service
+        .from("sync_products")
+        .select("data")
+        .eq("sync_id", input.syncId)
+        .order("row_index", { ascending: true })
+        .limit(500);
+
+      const rows = (syncProducts ?? []).map((p) => p.data as Record<string, string>);
+
+      // Fall back to pipeline run if no persisted products
+      let columnMapping: Record<string, string> = sync.column_mapping ?? {};
+      if (rows.length === 0) {
+        const result = await runSyncPipeline({
+          serviceClient: service,
+          sync: {
+            id: sync.id,
+            merchant_id: sync.merchant_id,
+            platform: sync.platform,
+            source_ids: sync.source_ids,
+            filter_rules: sync.filter_rules ?? [],
+          },
+        });
+        rows.push(...result.rows);
+        columnMapping = result.columnMapping;
+      }
+
+      const report = await runSyncAudit({
+        rows,
+        platform: sync.platform,
+        columnMapping,
+      });
+
+      // Save as assistant message with audit_report payload type
+      const { data: assistantMsg } = await ctx.supabase
+        .from("chat_messages")
+        .insert({
+          session_id: input.sessionId,
+          role: "assistant",
+          content: report.summary,
+          payload: { type: "audit_report", ...report },
         })
         .select()
         .single();
