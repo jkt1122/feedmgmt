@@ -4,6 +4,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Sparkles, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { PlatformDefaultRuleMeta } from "@/lib/pipeline/platform-defaults";
 
 export function SyncRecommendations({
@@ -115,33 +116,24 @@ export function SyncRecommendations({
 
           {/* Actions */}
           <div className="flex items-center gap-3 pt-3 border-t border-border">
-            <button
-              type="button"
-              onClick={handleAcceptAll}
-              disabled={acceptRules.isPending}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-            >
-              <Check className="w-3 h-3" />
+            <Button size="sm" onClick={handleAcceptAll} disabled={acceptRules.isPending}>
+              <Check />
               {acceptRules.isPending ? "Applying…" : "Accept all"}
-            </button>
+            </Button>
             {accepted.size > 0 && (
-              <button
-                type="button"
-                onClick={handleAcceptSelected}
-                disabled={acceptRules.isPending}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg border border-primary text-primary hover:bg-accent transition-colors disabled:opacity-50"
-              >
+              <Button variant="outline" size="sm" onClick={handleAcceptSelected} disabled={acceptRules.isPending}>
                 Accept selected ({accepted.size})
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => dismissAll.mutate({ syncId })}
               disabled={dismissAll.isPending}
-              className="text-xs text-muted-foreground hover:text-foreground ml-auto transition-colors"
+              className="ml-auto"
             >
               Dismiss
-            </button>
+            </Button>
           </div>
         </div>
       )}

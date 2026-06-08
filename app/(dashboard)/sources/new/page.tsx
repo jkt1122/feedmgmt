@@ -153,12 +153,14 @@ export default function NewSourcePage() {
                 <FileText className="w-8 h-8 text-primary" />
                 <p className="text-sm font-semibold text-foreground">{file.name}</p>
                 <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
-                <button
+                <Button
+                  variant="link"
+                  size="sm"
                   onClick={() => { setFile(null); setHeaders([]); }}
-                  className="text-xs text-muted-foreground hover:text-foreground underline"
+                  className="text-muted-foreground"
                 >
                   Remove
-                </button>
+                </Button>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3">

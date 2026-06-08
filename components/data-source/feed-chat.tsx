@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { MessageCircle, ChevronDown, ChevronUp, Send, Loader2, CheckCircle2, BookmarkPlus, Globe, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatResult } from "@/lib/pipeline/chat";
@@ -228,20 +229,21 @@ export function FeedChat({
 
           {/* Input */}
           <div className="px-6 py-3 border-t border-border flex gap-2">
-            <input
+            <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
               placeholder="e.g. Capitalize all product titles…"
-              className="flex-1 text-sm bg-muted border border-border rounded-lg px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50"
+              className="flex-1 bg-muted"
               disabled={sendMessage.isPending}
             />
             <Button
+              size="icon-lg"
               onClick={handleSend}
               disabled={!input.trim() || sendMessage.isPending}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground h-9 w-9 p-0 shrink-0"
+              className="shrink-0"
             >
-              <Send className="w-4 h-4" />
+              <Send />
             </Button>
           </div>
         </div>

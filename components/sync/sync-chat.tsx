@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp, Send, Loader2, Sparkles, BookmarkPlus, Check, ScanSearch } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { ChatResult } from "@/lib/pipeline/chat";
 import type { AuditReport, AuditFinding } from "@/lib/pipeline/audit";
 import type { PlatformDefaultRuleMeta } from "@/lib/pipeline/platform-defaults";
@@ -494,21 +496,21 @@ export function SyncChat({
               </div>
             )}
             <div className="flex gap-2 items-center">
-              <input
+              <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submit()}
                 placeholder="Ask the assistant to optimize, fix, or adjust any product or field…"
-                className="flex-1 text-sm bg-background border border-border rounded-xl px-4 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                className="flex-1"
               />
-              <button
-                type="button"
+              <Button
+                size="icon-lg"
                 onClick={submit}
                 disabled={!input.trim() || isLoading}
-                className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-primary-foreground disabled:opacity-40 hover:bg-primary/90 transition-colors"
+                className="shrink-0"
               >
-                <Send className="w-4 h-4" />
-              </button>
+                <Send />
+              </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1.5 px-1">
               Changes apply to this sync only · source data is never modified · you can fix individual products by ID
