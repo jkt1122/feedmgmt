@@ -21,21 +21,21 @@ export function AppTopbar({ user }: { user: User }) {
   const initials = user.email?.slice(0, 2).toUpperCase() ?? "??";
 
   return (
-    <header className="h-14 flex items-center justify-between px-4 border-b border-border bg-surface flex-shrink-0">
+    <header className="h-14 flex items-center justify-between px-4 border-b border-border bg-card flex-shrink-0">
       <div />
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-surface-2 transition-colors outline-none">
+        <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-muted transition-colors outline-none">
           <Avatar className="w-7 h-7">
-            <AvatarFallback className="bg-lavender text-accent-text text-xs font-semibold">
+            <AvatarFallback className="bg-accent text-primary text-xs font-semibold">
               {initials}
             </AvatarFallback>
           </Avatar>
-          <span className="text-sm text-ink font-medium hidden sm:block">
+          <span className="text-sm text-foreground font-medium hidden sm:block">
             {user.email}
           </span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem disabled className="text-xs text-slate">
+          <DropdownMenuItem disabled className="text-xs text-muted-foreground">
             {user.email}
           </DropdownMenuItem>
           <DropdownMenuSeparator />

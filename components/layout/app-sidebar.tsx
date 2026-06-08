@@ -20,10 +20,10 @@ export function AppSidebar() {
   const [metaExpanded, setMetaExpanded] = useState(true);
 
   return (
-    <aside className="w-60 flex-shrink-0 border-r border-border bg-surface flex flex-col h-full">
+    <aside className="w-60 flex-shrink-0 border-r border-border bg-card flex flex-col h-full">
       {/* Logo */}
       <div className="h-14 flex items-center px-4 border-b border-border">
-        <span className="text-base font-semibold text-ink">FeedMgmt</span>
+        <span className="text-base font-semibold text-foreground">FeedMgmt</span>
       </div>
 
       {/* Nav */}
@@ -31,12 +31,12 @@ export function AppSidebar() {
         {/* Data Sources section */}
         <div className="mb-1">
           <div className="flex items-center justify-between px-2 mb-1">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Data Sources
             </span>
             <Link
               href="/sources/new"
-              className="w-5 h-5 flex items-center justify-center rounded text-slate hover:text-ink hover:bg-surface-2 transition-colors"
+              className="w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               title="Add source"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -54,14 +54,14 @@ export function AppSidebar() {
               />
             ))
           ) : (
-            <p className="px-2 py-1.5 text-xs text-slate">No sources yet</p>
+            <p className="px-2 py-1.5 text-xs text-muted-foreground">No sources yet</p>
           )}
         </div>
 
         {/* Platform Syncs section */}
         <div className="mt-4 mb-1">
           <div className="flex items-center justify-between px-2 mb-1">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Platform Syncs
             </span>
           </div>
@@ -71,13 +71,13 @@ export function AppSidebar() {
             <button
               type="button"
               onClick={() => setGoogleExpanded((e) => !e)}
-              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-surface-2 transition-colors"
+              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-muted transition-colors"
             >
               <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded flex-shrink-0">G</span>
-              <span className="text-sm font-medium text-ink flex-1 text-left">Google Shopping</span>
+              <span className="text-sm font-medium text-foreground flex-1 text-left">Google Shopping</span>
               {googleExpanded
-                ? <ChevronDown className="w-3 h-3 text-slate flex-shrink-0" />
-                : <ChevronRight className="w-3 h-3 text-slate flex-shrink-0" />}
+                ? <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                : <ChevronRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
             </button>
             {googleExpanded && (
               <div className="pl-4">
@@ -91,7 +91,7 @@ export function AppSidebar() {
                 ))}
                 <Link
                   href="/syncs/new?platform=google_shopping"
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-electric hover:bg-lavender rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-accent rounded-lg transition-colors"
                 >
                   <Plus className="w-3 h-3" />
                   New sync
@@ -105,13 +105,13 @@ export function AppSidebar() {
             <button
               type="button"
               onClick={() => setMetaExpanded((e) => !e)}
-              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-surface-2 transition-colors"
+              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-muted transition-colors"
             >
-              <span className="text-xs font-semibold text-deep bg-lavender px-1.5 py-0.5 rounded flex-shrink-0">M</span>
-              <span className="text-sm font-medium text-ink flex-1 text-left">Meta Catalog</span>
+              <span className="text-xs font-semibold text-deep bg-accent px-1.5 py-0.5 rounded flex-shrink-0">M</span>
+              <span className="text-sm font-medium text-foreground flex-1 text-left">Meta Catalog</span>
               {metaExpanded
-                ? <ChevronDown className="w-3 h-3 text-slate flex-shrink-0" />
-                : <ChevronRight className="w-3 h-3 text-slate flex-shrink-0" />}
+                ? <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                : <ChevronRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
             </button>
             {metaExpanded && (
               <div className="pl-4">
@@ -125,7 +125,7 @@ export function AppSidebar() {
                 ))}
                 <Link
                   href="/syncs/new?platform=meta_catalog"
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-electric hover:bg-lavender rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-accent rounded-lg transition-colors"
                 >
                   <Plus className="w-3 h-3" />
                   New sync
@@ -166,8 +166,8 @@ function NavItem({
       className={cn(
         "flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-colors",
         active
-          ? "bg-lavender text-accent-text font-semibold"
-          : "text-slate hover:text-ink hover:bg-surface-2 font-medium"
+          ? "bg-accent text-primary font-semibold"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted font-medium"
       )}
     >
       {icon}

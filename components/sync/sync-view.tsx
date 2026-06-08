@@ -82,18 +82,18 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
   return (
     <div className="flex flex-col h-full">
       {/* Topbar */}
-      <div className="h-13 border-b border-border bg-surface flex items-center px-6 gap-3 flex-shrink-0">
+      <div className="h-13 border-b border-border bg-card flex items-center px-6 gap-3 flex-shrink-0">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 text-sm font-semibold text-ink">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
             {sync.name}
             <span className={cn(
               "text-xs font-bold px-1.5 py-0.5 rounded",
-              sync.platform === "google_shopping" ? "bg-blue-50 text-blue-700" : "bg-lavender text-deep"
+              sync.platform === "google_shopping" ? "bg-blue-50 text-blue-700" : "bg-accent text-deep"
             )}>
               {platformLabel}
             </span>
           </div>
-          <div className="text-xs text-slate font-mono mt-0.5">
+          <div className="text-xs text-muted-foreground font-mono mt-0.5">
             {neverRun
               ? "Not yet run"
               : `~${totalRows.toLocaleString()} products${filteredOut > 0 ? ` · ${filteredOut.toLocaleString()} filtered out` : ""}${lastRun ? ` · synced ${lastRun}` : ""}`
@@ -104,7 +104,7 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
           <button
             type="button"
             onClick={() => setEditOpen(true)}
-            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-border bg-background text-slate hover:text-ink hover:bg-surface transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-card transition-colors"
           >
             <Settings className="w-3 h-3" />
             Edit setup
@@ -113,7 +113,7 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
             type="button"
             onClick={() => runSync.mutate({ id: sync.id })}
             disabled={runSync.isPending}
-            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-border bg-background text-slate hover:text-ink hover:bg-surface transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-card transition-colors"
           >
             <RefreshCw className={cn("w-3 h-3", runSync.isPending && "animate-spin")} />
             {runSync.isPending ? "Syncing…" : "Sync now"}
@@ -125,8 +125,8 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
             className={cn(
               "inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors",
               neverRun
-                ? "bg-border text-slate cursor-not-allowed"
-                : "bg-electric text-white hover:bg-electric/90"
+                ? "bg-border text-muted-foreground cursor-not-allowed"
+                : "bg-primary text-white hover:bg-primary/90"
             )}
           >
             <Download className="w-3 h-3" />
@@ -135,7 +135,7 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            className="p-1.5 text-slate hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+            className="p-1.5 text-muted-foreground hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
             title="Delete sync"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -176,22 +176,22 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
       {/* Table */}
       <div className="flex-1 overflow-auto min-h-0">
         {neverRun ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-slate">
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
             <div className="text-3xl opacity-20">📦</div>
-            <p className="text-sm font-medium text-ink">Sync has not run yet</p>
-            <p className="text-xs text-slate">Run the sync to process your sources and see the platform-ready feed.</p>
+            <p className="text-sm font-medium text-foreground">Sync has not run yet</p>
+            <p className="text-xs text-muted-foreground">Run the sync to process your sources and see the platform-ready feed.</p>
             <button
               type="button"
               onClick={() => runSync.mutate({ id: sync.id })}
               disabled={runSync.isPending}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-electric px-4 py-2 rounded-lg hover:bg-electric/90 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-primary px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               <RefreshCw className={cn("w-3 h-3", runSync.isPending && "animate-spin")} />
               {runSync.isPending ? "Running…" : "Run sync now"}
             </button>
           </div>
         ) : rows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-2 text-slate">
+          <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
             <p className="text-sm">No products matched your filter rules.</p>
           </div>
         ) : (
@@ -199,13 +199,13 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
             <thead className="sticky top-0 bg-background z-10">
               <tr>
                 <th className="w-9 px-3 py-2 text-left border-b border-border">
-                  <input type="checkbox" className="accent-electric w-3 h-3" />
+                  <input type="checkbox" className="accent-primary w-3 h-3" />
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-slate uppercase tracking-wide border-b border-border whitespace-nowrap">
+                <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide border-b border-border whitespace-nowrap">
                   #
                 </th>
                 {visibleFields.map((f) => (
-                  <th key={f.key} className="px-3 py-2 text-left text-xs font-semibold text-slate uppercase tracking-wide border-b border-border whitespace-nowrap">
+                  <th key={f.key} className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide border-b border-border whitespace-nowrap">
                     {f.label}
                   </th>
                 ))}
@@ -218,11 +218,11 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
                 const issueFields = new Set((issues ?? []).map((e) => e.field));
                 return (
                   <tr key={i} className={cn(
-                    "border-b border-border hover:bg-mist transition-colors",
+                    "border-b border-border hover:bg-accent transition-colors",
                     issues && issues.length > 0 && "bg-red-50/30"
                   )}>
-                    <td className="px-3 h-9"><input type="checkbox" className="accent-electric w-3 h-3" /></td>
-                    <td className="px-3 h-9 text-xs text-slate font-mono">{i + 1}</td>
+                    <td className="px-3 h-9"><input type="checkbox" className="accent-primary w-3 h-3" /></td>
+                    <td className="px-3 h-9 text-xs text-muted-foreground font-mono">{i + 1}</td>
                     {visibleFields.map((f) => {
                       const val = row[f.key] ?? "";
                       const preVal = pre[f.key] ?? "";
@@ -237,11 +237,11 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
                             isDataField ? "font-mono text-xs" : "text-sm",
                             hasFieldIssue ? "text-red-700 bg-red-50/60"
                               : changed ? "text-green-700 bg-green-50/60"
-                              : "text-ink"
+                              : "text-foreground"
                           )}
                           title={val || undefined}
                         >
-                          {val || <span className="text-slate/40 italic text-xs">—</span>}
+                          {val || <span className="text-muted-foreground/40 italic text-xs">—</span>}
                         </td>
                       );
                     })}
@@ -278,9 +278,9 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
       {/* Delete confirmation modal */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="bg-surface rounded-2xl border border-border shadow-xl w-full max-w-sm p-6">
-            <h2 className="text-base font-bold text-ink mb-1">Delete sync?</h2>
-            <p className="text-sm text-slate mb-5 leading-relaxed">
+          <div className="bg-card rounded-2xl border border-border shadow-xl w-full max-w-sm p-6">
+            <h2 className="text-base font-bold text-foreground mb-1">Delete sync?</h2>
+            <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
               <strong>&ldquo;{sync.name}&rdquo;</strong> and all its optimizations will be permanently deleted.
               Your source data is not affected.
             </p>
@@ -288,7 +288,7 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
               <button
                 type="button"
                 onClick={() => setConfirmDelete(false)}
-                className="text-sm font-medium text-slate hover:text-ink px-4 py-2 rounded-lg border border-border hover:bg-background transition-colors"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground px-4 py-2 rounded-lg border border-border hover:bg-background transition-colors"
               >
                 Cancel
               </button>

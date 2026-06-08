@@ -10,68 +10,76 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Hanno brand purples
-        "deep-purple": "#4C1D95",
-        electric: "#7C3AED",
-        violet: "#A78BFA",
-        lavender: "#EDE9FE",
-        mist: "#F5F3FF",
-        // Hanno neutrals
-        ink: "#0F172A",
-        slate: "#64748B",
-        // Surfaces
-        surface: "#FFFFFF",
-        "surface-2": "#F8FAFC",
-        border: "#E2E8F0",
-        "border-hover": "#CBD5E1",
-        // Semantic
+        // Shadcn semantic tokens (oklch values defined in globals.css)
+        border: "var(--border)",
         accent: {
-          DEFAULT: "#7C3AED",
-          hover: "#6D28D9",
-          light: "#EDE9FE",
-          text: "#4C1D95",
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
         },
-        // Shadcn compat
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
+        },
+        success: {
+          DEFAULT: "var(--success)",
+          foreground: "var(--success-foreground)",
+        },
+        warning: {
+          DEFAULT: "var(--warning)",
+          foreground: "var(--warning-foreground)",
         },
         card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
         },
         popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)",
         },
-        ring: "hsl(var(--ring))",
-        input: "hsl(var(--input))",
+        ring: "var(--ring)",
+        input: "var(--input)",
+        chart: {
+          1: "var(--chart-1)",
+          2: "var(--chart-2)",
+          3: "var(--chart-3)",
+          4: "var(--chart-4)",
+          5: "var(--chart-5)",
+        },
+        sidebar: {
+          DEFAULT: "var(--sidebar)",
+          foreground: "var(--sidebar-foreground)",
+          primary: "var(--sidebar-primary)",
+          "primary-foreground": "var(--sidebar-primary-foreground)",
+          accent: "var(--sidebar-accent)",
+          "accent-foreground": "var(--sidebar-accent-foreground)",
+          border: "var(--sidebar-border)",
+          ring: "var(--sidebar-ring)",
+        },
       },
       fontFamily: {
-        sans: ["Inter", "-apple-system", "sans-serif"],
-        mono: ["JetBrains Mono", "Fira Code", "monospace"],
+        sans: ["var(--font-sans)", "-apple-system", "sans-serif"],
+        mono: ["var(--font-mono)", "Fira Code", "monospace"],
       },
       borderRadius: {
-        sm: "4px",
-        DEFAULT: "8px",
-        md: "8px",
-        lg: "12px",
-        xl: "16px",
-        "2xl": "20px",
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+        xl: "calc(var(--radius) + 4px)",
+        "2xl": "calc(var(--radius) + 8px)",
         full: "9999px",
       },
       fontSize: {

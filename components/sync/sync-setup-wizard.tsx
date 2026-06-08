@@ -88,20 +88,20 @@ export function SyncSetupWizard({
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {/* Topbar */}
-      <div className="h-13 border-b border-border bg-surface flex items-center px-6 gap-3 flex-shrink-0">
+      <div className="h-13 border-b border-border bg-card flex items-center px-6 gap-3 flex-shrink-0">
         <div className="flex-1">
-          <div className="flex items-center gap-2 text-sm font-semibold text-ink">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
             New sync
             <span className={cn(
               "text-xs font-bold px-1.5 py-0.5 rounded",
               platform === "google_shopping"
                 ? "bg-blue-50 text-blue-700"
-                : "bg-lavender text-deep"
+                : "bg-accent text-deep"
             )}>
               {platformLabel}
             </span>
           </div>
-          <div className="text-xs text-slate font-mono mt-0.5">
+          <div className="text-xs text-muted-foreground font-mono mt-0.5">
             Configure this sync then save to activate
           </div>
         </div>
@@ -110,39 +110,39 @@ export function SyncSetupWizard({
       <div className="flex-1 px-8 py-7 flex flex-col gap-5 max-w-2xl">
         {/* Intro */}
         <div>
-          <h2 className="text-base font-bold text-ink mb-1">
+          <h2 className="text-base font-bold text-foreground mb-1">
             Set up a {platformLabel} sync
           </h2>
-          <p className="text-sm text-slate leading-relaxed">
+          <p className="text-sm text-muted-foreground leading-relaxed">
             Give it a name, pick your data sources, and add any filters.
             After creating, the Feed Assistant will suggest platform-specific rules for you to review.
           </p>
         </div>
 
         {/* Step 1: Name + sources */}
-        <div className="bg-surface border border-border rounded-xl overflow-hidden">
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-border">
-            <div className="text-xs font-bold uppercase tracking-wide text-slate mb-1">Step 1</div>
-            <div className="text-sm font-bold text-ink mb-0.5">Name and data sources</div>
-            <div className="text-xs text-slate leading-relaxed">
+            <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1">Step 1</div>
+            <div className="text-sm font-bold text-foreground mb-0.5">Name and data sources</div>
+            <div className="text-xs text-muted-foreground leading-relaxed">
               Give this sync a name and pick which transformed sources to include.
               Multiple sources are merged and deduplicated automatically.
             </div>
           </div>
           <div className="px-5 py-4">
-            <label className="text-xs font-semibold text-ink block mb-1.5">Sync name</label>
+            <label className="text-xs font-semibold text-foreground block mb-1.5">Sync name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Summer Footwear, All Products, Clearance Only…"
-              className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 outline-none focus:border-electric focus:ring-2 focus:ring-electric/10 mb-4"
+              className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 mb-4"
             />
 
-            <label className="text-xs font-semibold text-ink block mb-2">Data sources</label>
+            <label className="text-xs font-semibold text-foreground block mb-2">Data sources</label>
             <div className="flex flex-col gap-2">
               {sources.length === 0 && (
-                <p className="text-xs text-slate py-2">No data sources yet — add one first.</p>
+                <p className="text-xs text-muted-foreground py-2">No data sources yet — add one first.</p>
               )}
               {sources.map((src) => (
                 <button
@@ -152,24 +152,24 @@ export function SyncSetupWizard({
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 rounded-lg border text-left transition-all",
                     selectedSources.includes(src.id)
-                      ? "border-electric bg-lavender"
-                      : "border-border bg-background hover:border-slate/40"
+                      ? "border-primary bg-accent"
+                      : "border-border bg-background hover:border-muted-foreground/40"
                   )}
                 >
                   <input
                     type="checkbox"
                     readOnly
                     checked={selectedSources.includes(src.id)}
-                    className="accent-electric w-4 h-4 flex-shrink-0"
+                    className="accent-primary w-4 h-4 flex-shrink-0"
                   />
                   <div>
                     <div className={cn(
                       "text-sm font-semibold",
-                      selectedSources.includes(src.id) ? "text-deep" : "text-ink"
+                      selectedSources.includes(src.id) ? "text-deep" : "text-foreground"
                     )}>
                       {src.name}
                     </div>
-                    <div className="text-xs text-slate font-mono mt-0.5">
+                    <div className="text-xs text-muted-foreground font-mono mt-0.5">
                       {src.pipeline_status === "done" ? "Pipeline complete" : "Pending pipeline"}
                     </div>
                   </div>
@@ -178,7 +178,7 @@ export function SyncSetupWizard({
             </div>
 
             {selectedSources.length > 1 && (
-              <div className="mt-3 text-xs text-slate flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-lg">
+              <div className="mt-3 text-xs text-muted-foreground flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-lg">
                 <span className="opacity-70">⟳</span>
                 <span>
                   <strong>{selectedSources.length} sources</strong> combined · duplicates removed automatically
@@ -189,11 +189,11 @@ export function SyncSetupWizard({
         </div>
 
         {/* Step 2: Filter rules */}
-        <div className="bg-surface border border-border rounded-xl overflow-hidden">
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-border">
-            <div className="text-xs font-bold uppercase tracking-wide text-slate mb-1">Step 2 — optional</div>
-            <div className="text-sm font-bold text-ink mb-0.5">Filter rules</div>
-            <div className="text-xs text-slate leading-relaxed">
+            <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1">Step 2 — optional</div>
+            <div className="text-sm font-bold text-foreground mb-0.5">Filter rules</div>
+            <div className="text-xs text-muted-foreground leading-relaxed">
               Limit which products are included in this sync. Leave empty to include everything.
             </div>
           </div>
@@ -204,7 +204,7 @@ export function SyncSetupWizard({
                   <select
                     value={rule.field}
                     onChange={(e) => updateFilter(i, { field: e.target.value })}
-                    className="text-sm bg-background border border-border rounded-lg px-3 py-1.5 outline-none focus:border-electric"
+                    className="text-sm bg-background border border-border rounded-lg px-3 py-1.5 outline-none focus:border-primary"
                   >
                     {FILTER_FIELDS.map((f) => (
                       <option key={f} value={f}>{f}</option>
@@ -213,7 +213,7 @@ export function SyncSetupWizard({
                   <select
                     value={rule.operator}
                     onChange={(e) => updateFilter(i, { operator: e.target.value as FilterRule["operator"] })}
-                    className="text-sm bg-background border border-border rounded-lg px-3 py-1.5 outline-none focus:border-electric"
+                    className="text-sm bg-background border border-border rounded-lg px-3 py-1.5 outline-none focus:border-primary"
                   >
                     {OPERATORS.map((op) => (
                       <option key={op.value} value={op.value}>{op.label}</option>
@@ -224,12 +224,12 @@ export function SyncSetupWizard({
                     value={rule.value}
                     onChange={(e) => updateFilter(i, { value: e.target.value })}
                     placeholder="value"
-                    className="flex-1 text-sm bg-background border border-border rounded-lg px-3 py-1.5 outline-none focus:border-electric"
+                    className="flex-1 text-sm bg-background border border-border rounded-lg px-3 py-1.5 outline-none focus:border-primary"
                   />
                   <button
                     type="button"
                     onClick={() => removeFilter(i)}
-                    className="text-slate hover:text-red-600 p-1 rounded transition-colors"
+                    className="text-muted-foreground hover:text-red-600 p-1 rounded transition-colors"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -239,7 +239,7 @@ export function SyncSetupWizard({
             <button
               type="button"
               onClick={addFilter}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-electric px-3 py-1.5 rounded-lg border border-dashed border-electric/50 hover:bg-lavender transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary px-3 py-1.5 rounded-lg border border-dashed border-primary/50 hover:bg-accent transition-colors"
             >
               + Add filter
             </button>
@@ -248,7 +248,7 @@ export function SyncSetupWizard({
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-2 border-t border-border mt-1">
-          <span className="text-xs text-slate">Settings can be changed any time after saving</span>
+          <span className="text-xs text-muted-foreground">Settings can be changed any time after saving</span>
           <button
             type="button"
             onClick={handleSubmit}
@@ -256,8 +256,8 @@ export function SyncSetupWizard({
             className={cn(
               "inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors",
               canSubmit
-                ? "bg-electric text-white hover:bg-electric/90"
-                : "bg-border text-slate cursor-not-allowed"
+                ? "bg-primary text-white hover:bg-primary/90"
+                : "bg-border text-muted-foreground cursor-not-allowed"
             )}
           >
             {createSync.isPending ? "Creating sync…" : "Create sync"}

@@ -24,7 +24,7 @@ function Toggle({ on, onToggle, disabled }: { on: boolean; onToggle: () => void;
       disabled={disabled}
       className={cn(
         "w-7 h-4 rounded-full relative transition-colors flex-shrink-0 disabled:opacity-40",
-        on ? "bg-electric" : "bg-border"
+        on ? "bg-primary" : "bg-border"
       )}
       aria-label={on ? "Disable" : "Enable"}
     >
@@ -116,46 +116,46 @@ export function SyncRulesPanel({
   const validationDefaults = platformDefaults.filter((r) => r.stage === "validation" || r.stage === "quality");
 
   return (
-    <div className="border-b border-border bg-surface flex-shrink-0">
+    <div className="border-b border-border bg-card flex-shrink-0">
       <button
         onClick={() => setPanelOpen((o) => !o)}
-        className="w-full flex items-center text-left transition-colors hover:bg-mist cursor-pointer"
+        className="w-full flex items-center text-left transition-colors hover:bg-accent cursor-pointer"
       >
         <div className="flex items-center gap-2.5 px-6 py-2.5 flex-1 min-w-0">
-          <div className="w-5 h-5 rounded bg-lavender flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-3 h-3 text-electric" />
+          <div className="w-5 h-5 rounded bg-accent flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-3 h-3 text-primary" />
           </div>
-          <span className="text-xs font-semibold text-accent-text">
+          <span className="text-xs font-semibold text-primary">
             {optimizationLabel}
           </span>
-          <span className="text-xs text-slate">
+          <span className="text-xs text-muted-foreground">
             {totalActive} of {platformDefaults.length + customRules.length} active
           </span>
           {isBusy && (
-            <span className="flex items-center gap-1 text-xs text-slate">
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <Loader2 className="w-3 h-3 animate-spin" />
               Re-running…
             </span>
           )}
         </div>
         <div className="flex items-center gap-3 px-6 py-2.5 flex-shrink-0">
-          <span className="text-xs text-electric font-medium">
+          <span className="text-xs text-primary font-medium">
             {panelOpen ? "Hide" : "Manage"}
           </span>
-          {panelOpen ? <ChevronUp className="w-3.5 h-3.5 text-slate" /> : <ChevronDown className="w-3.5 h-3.5 text-slate" />}
+          {panelOpen ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
         </div>
       </button>
 
       {panelOpen && (
-        <div className="px-6 py-4 bg-mist border-t border-border">
-          <p className="text-xs text-slate mb-3">
+        <div className="px-6 py-4 bg-accent border-t border-border">
+          <p className="text-xs text-muted-foreground mb-3">
             Toggle re-runs the sync so changes are reflected immediately in the table.
           </p>
 
           {/* Platform optimization rules */}
           {formatDefaults.length > 0 && (
             <div className="mb-3">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate mb-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                 Format &amp; Normalization
               </div>
               <div className="flex flex-col gap-1.5">
@@ -163,15 +163,15 @@ export function SyncRulesPanel({
                   const db = dbByPlainEnglish.get(def.plain_english);
                   const isOn = db?.enabled === true;
                   return (
-                    <div key={def.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface border border-border">
+                    <div key={def.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-card border border-border">
                       <Toggle on={isOn} onToggle={() => handleDefaultToggle(def)} disabled={isBusy} />
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium text-ink truncate">{def.label}</div>
-                        <div className="text-xs text-slate mt-0.5">{def.plain_english}</div>
+                        <div className="text-xs font-medium text-foreground truncate">{def.label}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{def.plain_english}</div>
                       </div>
                       <span className={cn(
                         "text-xs px-2 py-0.5 rounded-full flex-shrink-0",
-                        platform === "google_shopping" ? "bg-blue-50 text-blue-700" : "bg-lavender text-deep"
+                        platform === "google_shopping" ? "bg-blue-50 text-blue-700" : "bg-accent text-deep"
                       )}>
                         {platformLabel}
                       </span>
@@ -184,7 +184,7 @@ export function SyncRulesPanel({
 
           {validationDefaults.length > 0 && (
             <div className="mb-3">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate mb-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                 Validation &amp; Quality
               </div>
               <div className="flex flex-col gap-1.5">
@@ -192,15 +192,15 @@ export function SyncRulesPanel({
                   const db = dbByPlainEnglish.get(def.plain_english);
                   const isOn = db?.enabled === true;
                   return (
-                    <div key={def.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface border border-border">
+                    <div key={def.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-card border border-border">
                       <Toggle on={isOn} onToggle={() => handleDefaultToggle(def)} disabled={isBusy} />
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium text-ink truncate">{def.label}</div>
-                        <div className="text-xs text-slate mt-0.5">{def.plain_english}</div>
+                        <div className="text-xs font-medium text-foreground truncate">{def.label}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{def.plain_english}</div>
                       </div>
                       <span className={cn(
                         "text-xs px-2 py-0.5 rounded-full flex-shrink-0",
-                        platform === "google_shopping" ? "bg-blue-50 text-blue-700" : "bg-lavender text-deep"
+                        platform === "google_shopping" ? "bg-blue-50 text-blue-700" : "bg-accent text-deep"
                       )}>
                         {platformLabel}
                       </span>
@@ -214,19 +214,19 @@ export function SyncRulesPanel({
           {/* Custom rules from chat */}
           {customRules.length > 0 && (
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate mb-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                 Custom
               </div>
               <div className="flex flex-col gap-1.5">
                 {customRules.map((rule) => (
-                  <div key={rule.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface border border-border">
+                  <div key={rule.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-card border border-border">
                     <Toggle
                       on={rule.enabled}
                       onToggle={() => toggleRule.mutate({ ruleId: rule.id, enabled: !rule.enabled })}
                       disabled={isBusy}
                     />
-                    <span className="text-xs text-ink flex-1">{rule.label}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-background text-slate border border-border flex-shrink-0">
+                    <span className="text-xs text-foreground flex-1">{rule.label}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-background text-muted-foreground border border-border flex-shrink-0">
                       Custom
                     </span>
                   </div>

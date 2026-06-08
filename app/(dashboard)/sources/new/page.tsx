@@ -109,8 +109,8 @@ export default function NewSourcePage() {
     return (
       <div className="flex flex-col items-center justify-center h-full">
         <CheckCircle2 className="w-10 h-10 text-green-500 mb-3" />
-        <p className="text-base font-semibold text-ink">Source created!</p>
-        <p className="text-sm text-slate">Redirecting to your data…</p>
+        <p className="text-base font-semibold text-foreground">Source created!</p>
+        <p className="text-sm text-muted-foreground">Redirecting to your data…</p>
       </div>
     );
   }
@@ -127,12 +127,12 @@ export default function NewSourcePage() {
       {step === "upload" && (
         <div className="space-y-6">
           <div>
-            <h1 className="text-xl font-bold text-ink mb-1">Add data source</h1>
-            <p className="text-sm text-slate">Upload a product catalog CSV to get started.</p>
+            <h1 className="text-xl font-bold text-foreground mb-1">Add data source</h1>
+            <p className="text-sm text-muted-foreground">Upload a product catalog CSV to get started.</p>
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-sm font-semibold text-ink">Source name</Label>
+            <Label className="text-sm font-semibold text-foreground">Source name</Label>
             <Input
               value={sourceName}
               onChange={(e) => setSourceName(e.target.value)}
@@ -145,27 +145,27 @@ export default function NewSourcePage() {
             onDrop={handleDrop}
             className={cn(
               "border-2 border-dashed rounded-lg p-10 text-center transition-colors",
-              file ? "border-electric bg-lavender/30" : "border-border hover:border-electric hover:bg-mist"
+              file ? "border-primary bg-accent/30" : "border-border hover:border-primary hover:bg-accent"
             )}
           >
             {file ? (
               <div className="flex flex-col items-center gap-2">
-                <FileText className="w-8 h-8 text-electric" />
-                <p className="text-sm font-semibold text-ink">{file.name}</p>
-                <p className="text-xs text-slate">{(file.size / 1024).toFixed(1)} KB</p>
+                <FileText className="w-8 h-8 text-primary" />
+                <p className="text-sm font-semibold text-foreground">{file.name}</p>
+                <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
                 <button
                   onClick={() => { setFile(null); setHeaders([]); }}
-                  className="text-xs text-slate hover:text-ink underline"
+                  className="text-xs text-muted-foreground hover:text-foreground underline"
                 >
                   Remove
                 </button>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3">
-                <Upload className="w-8 h-8 text-slate" />
+                <Upload className="w-8 h-8 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-semibold text-ink">Drop your CSV here</p>
-                  <p className="text-xs text-slate mt-1">or click to browse</p>
+                  <p className="text-sm font-semibold text-foreground">Drop your CSV here</p>
+                  <p className="text-xs text-muted-foreground mt-1">or click to browse</p>
                 </div>
                 <input
                   type="file"
@@ -181,11 +181,11 @@ export default function NewSourcePage() {
           </div>
 
           {file && headers.length > 0 && (
-            <div className="bg-surface-2 rounded-lg p-3">
-              <p className="text-xs font-semibold text-slate mb-1">
+            <div className="bg-muted rounded-lg p-3">
+              <p className="text-xs font-semibold text-muted-foreground mb-1">
                 {headers.length} columns detected
               </p>
-              <p className="text-xs text-slate truncate">{headers.join(", ")}</p>
+              <p className="text-xs text-muted-foreground truncate">{headers.join(", ")}</p>
             </div>
           )}
 
@@ -194,7 +194,7 @@ export default function NewSourcePage() {
           <Button
             onClick={handleUpload}
             disabled={!file || !sourceName || uploading}
-            className="w-full bg-electric hover:bg-accent-hover text-white font-semibold"
+            className="w-full bg-primary hover:bg-primary text-white font-semibold"
           >
             {uploading ? "Uploading…" : "Continue"}
             {!uploading && <ArrowRight className="w-4 h-4 ml-2" />}
@@ -205,8 +205,8 @@ export default function NewSourcePage() {
       {step === "mapping" && (
         <div className="space-y-6">
           <div>
-            <h1 className="text-xl font-bold text-ink mb-1">Map your columns</h1>
-            <p className="text-sm text-slate">
+            <h1 className="text-xl font-bold text-foreground mb-1">Map your columns</h1>
+            <p className="text-sm text-muted-foreground">
               Match your CSV columns to canonical fields. We&apos;ve auto-detected likely matches.
             </p>
           </div>
@@ -225,7 +225,7 @@ export default function NewSourcePage() {
           </div>
 
           <details className="group">
-            <summary className="text-sm font-semibold text-slate cursor-pointer hover:text-ink">
+            <summary className="text-sm font-semibold text-muted-foreground cursor-pointer hover:text-foreground">
               Optional fields ({CANONICAL_FIELDS.filter((f) => !f.required).length})
             </summary>
             <div className="mt-3 space-y-3">
@@ -245,7 +245,7 @@ export default function NewSourcePage() {
           <Button
             onClick={handleSaveMapping}
             disabled={updateMapping.isPending || runPipeline.isPending}
-            className="w-full bg-electric hover:bg-accent-hover text-white font-semibold"
+            className="w-full bg-primary hover:bg-primary text-white font-semibold"
           >
             {runPipeline.isPending ? "Importing products…" : updateMapping.isPending ? "Saving…" : "Save mapping & import"}
             {!updateMapping.isPending && !runPipeline.isPending && <ArrowRight className="w-4 h-4 ml-2" />}
@@ -275,12 +275,12 @@ function MappingRow({
     <div className="grid grid-cols-[1fr_1fr] gap-3 items-start">
       <div>
         <div className="flex items-center gap-1.5">
-          <span className="text-sm font-semibold text-ink">{field.label}</span>
+          <span className="text-sm font-semibold text-foreground">{field.label}</span>
           {field.required && (
             <span className="text-xs font-semibold text-red-500">*</span>
           )}
         </div>
-        <p className="text-xs text-slate mt-0.5">{field.description}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">{field.description}</p>
       </div>
       <div>
         <Select value={value} onValueChange={onChange}>
@@ -297,7 +297,7 @@ function MappingRow({
           </SelectContent>
         </Select>
         {sampleValue && (
-          <p className="text-xs font-data text-slate mt-1 truncate" title={sampleValue}>
+          <p className="text-xs font-data text-muted-foreground mt-1 truncate" title={sampleValue}>
             e.g. {sampleValue}
           </p>
         )}
@@ -323,10 +323,10 @@ function StepBadge({
         className={cn(
           "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
           active
-            ? "bg-electric text-white"
+            ? "bg-primary text-white"
             : done
             ? "bg-green-500 text-white"
-            : "bg-surface-2 text-slate"
+            : "bg-muted text-muted-foreground"
         )}
       >
         {done ? "✓" : n}
@@ -334,7 +334,7 @@ function StepBadge({
       <span
         className={cn(
           "text-sm font-medium",
-          active ? "text-ink" : "text-slate"
+          active ? "text-foreground" : "text-muted-foreground"
         )}
       >
         {label}

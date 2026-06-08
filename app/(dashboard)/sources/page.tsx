@@ -19,16 +19,16 @@ export default async function SourcesPage() {
   if (!sources || sources.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center px-4">
-        <div className="w-12 h-12 rounded-xl bg-lavender flex items-center justify-center mb-4">
-          <Upload className="w-5 h-5 text-electric" />
+        <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center mb-4">
+          <Upload className="w-5 h-5 text-primary" />
         </div>
-        <h2 className="text-lg font-semibold text-ink mb-1">No data sources yet</h2>
-        <p className="text-base text-slate max-w-xs mb-6">
+        <h2 className="text-lg font-semibold text-foreground mb-1">No data sources yet</h2>
+        <p className="text-base text-muted-foreground max-w-xs mb-6">
           Upload a product CSV to get started. FeedMgmt will parse your columns and help you map them to a standard format.
         </p>
         <Link
           href="/sources/new"
-          className={cn(buttonVariants(), "bg-electric hover:bg-[#6D28D9] text-white font-semibold")}
+          className={cn(buttonVariants(), "bg-primary hover:bg-[#6D28D9] text-white font-semibold")}
         >
           <Upload className="w-4 h-4 mr-2" />
           Upload CSV
@@ -40,10 +40,10 @@ export default async function SourcesPage() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-ink">Data Sources</h1>
+        <h1 className="text-2xl font-bold text-foreground">Data Sources</h1>
         <Link
           href="/sources/new"
-          className={cn(buttonVariants(), "bg-electric hover:bg-[#6D28D9] text-white font-semibold")}
+          className={cn(buttonVariants(), "bg-primary hover:bg-[#6D28D9] text-white font-semibold")}
         >
           <Upload className="w-4 h-4 mr-2" />
           Upload CSV
@@ -58,8 +58,8 @@ export default async function SourcesPage() {
             className="flex items-center justify-between p-4 bg-white border border-border rounded-lg hover:border-[#CBD5E1] transition-colors"
           >
             <div>
-              <p className="text-sm font-semibold text-ink">{source.name}</p>
-              <p className="text-xs text-slate mt-0.5">{source.original_filename}</p>
+              <p className="text-sm font-semibold text-foreground">{source.name}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{source.original_filename}</p>
             </div>
             <span
               className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -67,7 +67,7 @@ export default async function SourcesPage() {
                   ? "bg-green-50 text-green-700"
                   : source.pipeline_status === "error"
                   ? "bg-red-50 text-red-700"
-                  : "bg-[#F8FAFC] text-slate"
+                  : "bg-[#F8FAFC] text-muted-foreground"
               }`}
             >
               {source.pipeline_status}

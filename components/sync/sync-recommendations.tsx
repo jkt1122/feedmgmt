@@ -56,38 +56,38 @@ export function SyncRecommendations({
   };
 
   return (
-    <div className="border-b border-border bg-surface flex-shrink-0">
+    <div className="border-b border-border bg-card flex-shrink-0">
       {/* Header strip */}
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
-        className="w-full flex items-center gap-3 px-6 py-3 hover:bg-mist transition-colors text-left"
+        className="w-full flex items-center gap-3 px-6 py-3 hover:bg-accent transition-colors text-left"
       >
-        <div className="w-6 h-6 rounded-lg bg-electric flex items-center justify-center flex-shrink-0">
+        <div className="w-6 h-6 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
           <Sparkles className="w-3.5 h-3.5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <span className="text-sm font-semibold text-ink">
+          <span className="text-sm font-semibold text-foreground">
             {recommendations.length} {platformLabel} rules recommended
           </span>
-          <span className="text-xs text-slate ml-2">Review and accept to apply to this sync</span>
+          <span className="text-xs text-muted-foreground ml-2">Review and accept to apply to this sync</span>
         </div>
-        <span className="text-xs font-medium text-electric">
+        <span className="text-xs font-medium text-primary">
           {expanded ? "Collapse" : "Review"}
         </span>
-        {expanded ? <ChevronUp className="w-3.5 h-3.5 text-slate flex-shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-slate flex-shrink-0" />}
+        {expanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
       </button>
 
       {expanded && (
-        <div className="px-6 pb-5 bg-mist border-t border-border">
-          <p className="text-xs text-slate mt-4 mb-4 leading-relaxed">
+        <div className="px-6 pb-5 bg-accent border-t border-border">
+          <p className="text-xs text-muted-foreground mt-4 mb-4 leading-relaxed">
             These rules follow {platformLabel} best practices and specs. Accept the ones you want — they will run on every sync and appear in your rules panel.
           </p>
 
           <div className="flex flex-col gap-2 mb-4">
             {formatRules.length > 0 && (
               <div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate mb-2">Format &amp; Normalization</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Format &amp; Normalization</div>
                 {formatRules.map((rule) => (
                   <RuleRow
                     key={rule.id}
@@ -100,7 +100,7 @@ export function SyncRecommendations({
             )}
             {validationRules.length > 0 && (
               <div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate mb-2 mt-3">Validation &amp; Quality</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 mt-3">Validation &amp; Quality</div>
                 {validationRules.map((rule) => (
                   <RuleRow
                     key={rule.id}
@@ -119,7 +119,7 @@ export function SyncRecommendations({
               type="button"
               onClick={handleAcceptAll}
               disabled={acceptRules.isPending}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg bg-electric text-white hover:bg-electric/90 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               <Check className="w-3 h-3" />
               {acceptRules.isPending ? "Applying…" : "Accept all"}
@@ -129,7 +129,7 @@ export function SyncRecommendations({
                 type="button"
                 onClick={handleAcceptSelected}
                 disabled={acceptRules.isPending}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg border border-electric text-electric hover:bg-lavender transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg border border-primary text-primary hover:bg-accent transition-colors disabled:opacity-50"
               >
                 Accept selected ({accepted.size})
               </button>
@@ -138,7 +138,7 @@ export function SyncRecommendations({
               type="button"
               onClick={() => dismissAll.mutate({ syncId })}
               disabled={dismissAll.isPending}
-              className="text-xs text-slate hover:text-ink ml-auto transition-colors"
+              className="text-xs text-muted-foreground hover:text-foreground ml-auto transition-colors"
             >
               Dismiss
             </button>
@@ -165,21 +165,21 @@ function RuleRow({
       className={cn(
         "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all mb-1",
         accepted
-          ? "border-electric bg-lavender"
-          : "border-border bg-surface hover:border-slate/40"
+          ? "border-primary bg-accent"
+          : "border-border bg-card hover:border-muted-foreground/40"
       )}
     >
       <div className={cn(
         "w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-colors",
-        accepted ? "bg-electric border-electric" : "border-border bg-background"
+        accepted ? "bg-primary border-primary" : "border-border bg-background"
       )}>
         {accepted && <Check className="w-2.5 h-2.5 text-white" />}
       </div>
       <div className="flex-1 min-w-0">
-        <div className={cn("text-xs font-medium truncate", accepted ? "text-deep" : "text-ink")}>
+        <div className={cn("text-xs font-medium truncate", accepted ? "text-deep" : "text-foreground")}>
           {rule.label}
         </div>
-        <div className="text-xs text-slate mt-0.5 line-clamp-1">{rule.plain_english}</div>
+        <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{rule.plain_english}</div>
       </div>
       <span className={cn(
         "text-xs px-2 py-0.5 rounded-full flex-shrink-0",
