@@ -292,6 +292,7 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
             <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
             <Button
               variant="destructive"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => deleteSync.mutate({ id: sync.id })}
               disabled={deleteSync.isPending}
             >
