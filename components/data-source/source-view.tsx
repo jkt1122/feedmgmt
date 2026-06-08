@@ -78,11 +78,11 @@ export function SourceView({
   return (
     <div className="flex flex-col h-full">
       {/* Page header */}
-      <div className="px-6 pt-5 pb-4 border-b border-border bg-surface flex-shrink-0">
+      <div className="px-6 pt-5 pb-4 border-b border-border bg-card flex-shrink-0">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-lg font-bold text-ink">{source.name}</h1>
-            <p className="text-sm text-slate mt-0.5">{source.original_filename}</p>
+            <h1 className="text-lg font-bold text-foreground">{source.name}</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">{source.original_filename}</p>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -92,16 +92,16 @@ export function SourceView({
               className="h-8 text-xs font-semibold gap-1.5"
             >
               <RefreshCw className={cn("w-3.5 h-3.5", runPipeline.isPending && "animate-spin")} />
-              {runPipeline.isPending ? "Importing…" : "Re-run pipeline"}
+              {runPipeline.isPending ? "Running…" : "Re-run pipeline"}
             </Button>
             <Badge
               className={cn(
                 "text-xs font-semibold",
                 source.pipeline_status === "done"
-                  ? "bg-green-50 text-green-700 border-green-200"
+                  ? "bg-success/10 text-success border-success/20"
                   : source.pipeline_status === "error"
-                  ? "bg-red-50 text-red-700 border-red-200"
-                  : "bg-surface-2 text-slate border-border"
+                  ? "bg-destructive/10 text-destructive border-destructive/20"
+                  : "bg-muted text-muted-foreground border-border"
               )}
               variant="outline"
             >
@@ -109,11 +109,11 @@ export function SourceView({
             </Badge>
             {confirmDelete ? (
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-red-600 font-medium">Delete?</span>
+                <span className="text-xs text-destructive font-medium">Delete?</span>
                 <Button
                   onClick={() => deleteSource.mutate({ id: source.id })}
                   disabled={deleteSource.isPending}
-                  className="h-7 text-xs bg-red-500 hover:bg-red-600 text-white font-semibold px-2"
+                  className="h-7 text-xs bg-destructive hover:bg-destructive text-primary-foreground font-semibold px-2"
                 >
                   {deleteSource.isPending ? "Deleting…" : "Yes, delete"}
                 </Button>
@@ -129,7 +129,7 @@ export function SourceView({
               <Button
                 onClick={() => setConfirmDelete(true)}
                 variant="outline"
-                className="h-8 text-xs font-semibold gap-1.5 text-red-500 hover:text-red-600 hover:border-red-300"
+                className="h-8 text-xs font-semibold gap-1.5 text-destructive hover:text-destructive hover:border-destructive/20"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Delete
@@ -143,7 +143,7 @@ export function SourceView({
           <Stat label="Products" value={products.length.toLocaleString()} />
           <Stat label="Fields mapped" value={`${mappedFields.length} / ${CANONICAL_FIELDS.length}`} />
           {issueCount > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-amber-600">
+            <div className="flex items-center gap-1.5 text-xs text-warning">
               <AlertCircle className="w-3.5 h-3.5" />
               <span className="font-semibold">{issueCount} issues</span>
             </div>
@@ -161,20 +161,24 @@ export function SourceView({
           <TabsList className="bg-transparent p-0 gap-0 h-auto">
             <TabsTrigger
               value="transformed"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-electric data-[state=active]:text-electric px-0 mr-6 pb-2.5 pt-0 font-semibold text-sm text-slate data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-0 mr-6 pb-2.5 pt-0 font-semibold text-sm text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               Transformed
             </TabsTrigger>
             <TabsTrigger
               value="original"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-electric data-[state=active]:text-electric px-0 pb-2.5 pt-0 font-semibold text-sm text-slate data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-0 pb-2.5 pt-0 font-semibold text-sm text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               Original
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent value="transformed" className="flex-1 overflow-auto m-0 p-0">
+        <TabsContent value="transformed" className="flex-1 m-0 p-0 flex flex-col min-h-0 overflow-hidden">
+          <PipelinePanel
+            sourceId={source.id}
+            onRulesApplied={() => runPipeline.mutate({ id: source.id })}
+          />
           {products.length === 0 ? (
             <EmptyState />
           ) : (
@@ -206,14 +210,10 @@ export function SourceView({
         </TabsContent>
       </Tabs>
 
-      <PipelinePanel
-        sourceId={source.id}
-        onRulesApplied={() => runPipeline.mutate({ id: source.id })}
-      />
-
       <FeedChat
         sourceId={source.id}
         onDataChanged={invalidateProducts}
+        onRulesApplied={() => runPipeline.mutate({ id: source.id })}
       />
     </div>
   );
@@ -222,8 +222,8 @@ export function SourceView({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-xs text-slate">{label}</span>
-      <span className="text-xs font-semibold font-data text-ink">{value}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-xs font-semibold font-data text-foreground">{value}</span>
     </div>
   );
 }
@@ -231,8 +231,8 @@ function Stat({ label, value }: { label: string; value: string }) {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center py-20">
-      <p className="text-sm font-semibold text-ink mb-1">No products yet</p>
-      <p className="text-sm text-slate">
+      <p className="text-sm font-semibold text-foreground mb-1">No products yet</p>
+      <p className="text-sm text-muted-foreground">
         Products will appear here after the source pipeline runs.
       </p>
     </div>
@@ -253,15 +253,15 @@ function ProductTable({
   return (
     <div className="overflow-auto h-full">
       <table className="min-w-full text-sm border-collapse">
-        <thead className="sticky top-0 bg-surface-2 z-10">
+        <thead className="sticky top-0 bg-muted z-10">
           <tr>
-            <th className="text-left px-3 py-2 text-xs font-semibold text-slate border-b border-border w-10">
+            <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground border-b border-border w-10">
               #
             </th>
             {columns.map((col) => (
               <th
                 key={col.key}
-                className="text-left px-3 py-2 text-xs font-semibold text-slate border-b border-border whitespace-nowrap"
+                className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground border-b border-border whitespace-nowrap"
               >
                 {col.label}
               </th>
@@ -275,12 +275,12 @@ function ProductTable({
               <tr
                 key={product.id}
                 className={cn(
-                  "border-b border-border hover:bg-mist transition-colors",
-                  hasIssues && "bg-red-50/50",
+                  "border-b border-border hover:bg-accent transition-colors",
+                  hasIssues && "bg-destructive/10",
                   product.dedup_status === "removed" && "opacity-50"
                 )}
               >
-                <td className="px-3 py-2 text-xs font-data text-slate">
+                <td className="px-3 py-2 text-xs font-data text-muted-foreground">
                   {product.row_index + 1}
                 </td>
                 {columns.map((col) => {
@@ -293,12 +293,12 @@ function ProductTable({
                       className={cn(
                         "px-3 py-2 max-w-xs truncate",
                         isDataField ? "font-data text-xs" : "text-sm",
-                        transformed ? "text-green-700 bg-green-50/60" : "text-ink"
+                        transformed ? "text-success bg-success/10" : "text-foreground"
                       )}
                       title={val}
                     >
                       {val || (
-                        <span className="text-slate/50 text-xs italic">—</span>
+                        <span className="text-muted-foreground/50 text-xs italic">—</span>
                       )}
                     </td>
                   );
@@ -328,9 +328,9 @@ function OriginalTable({
   return (
     <div className="overflow-auto h-full">
       <table className="min-w-full text-sm border-collapse">
-        <thead className="sticky top-0 bg-surface-2 z-10">
+        <thead className="sticky top-0 bg-muted z-10">
           <tr>
-            <th className="text-left px-3 py-2 text-xs font-semibold text-slate border-b border-border w-10">
+            <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground border-b border-border w-10">
               #
             </th>
             {columns.map((col) => {
@@ -340,12 +340,12 @@ function OriginalTable({
                   key={col}
                   className={cn(
                     "text-left px-3 py-2 text-xs font-semibold border-b border-border whitespace-nowrap",
-                    isMapped ? "text-slate" : "text-slate/50"
+                    isMapped ? "text-muted-foreground" : "text-muted-foreground/50"
                   )}
                 >
                   {col}
                   {isMapped && (
-                    <span className="ml-1 text-electric/60">✓</span>
+                    <span className="ml-1 text-primary/60">✓</span>
                   )}
                 </th>
               );
@@ -356,9 +356,9 @@ function OriginalTable({
           {products.map((product) => (
             <tr
               key={product.id}
-              className="border-b border-border hover:bg-mist transition-colors"
+              className="border-b border-border hover:bg-accent transition-colors"
             >
-              <td className="px-3 py-2 text-xs font-data text-slate">
+              <td className="px-3 py-2 text-xs font-data text-muted-foreground">
                 {product.row_index + 1}
               </td>
               {columns.map((col) => {
@@ -366,10 +366,10 @@ function OriginalTable({
                 return (
                   <td
                     key={col}
-                    className="px-3 py-2 text-sm text-ink max-w-xs truncate"
+                    className="px-3 py-2 text-sm text-foreground max-w-xs truncate"
                     title={val}
                   >
-                    {val || <span className="text-slate/50 text-xs italic">—</span>}
+                    {val || <span className="text-muted-foreground/50 text-xs italic">—</span>}
                   </td>
                 );
               })}

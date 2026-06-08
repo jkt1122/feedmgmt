@@ -1,30 +1,44 @@
-export type RuleCondition =
-  | { type: "always" }
-  | { type: "field_empty"; field: string }
-  | { type: "field_matches"; field: string; pattern: string }
-  | { type: "field_not_in"; field: string; values: string[] };
+import { z } from "zod";
 
-export type RuleAction =
-  | { type: "trim"; field: string }
-  | { type: "lowercase"; field: string }
-  | { type: "uppercase"; field: string }
-  | { type: "replace"; field: string; find: string; replace: string }
-  | { type: "replace_map"; field: string; map: Record<string, string> }
-  | { type: "set_default"; field: string; value: string }
-  | { type: "prefix"; field: string; value: string }
-  | { type: "suffix"; field: string; value: string }
-  | { type: "strip_html"; field: string }
-  | { type: "normalize_price"; field: string }
-  | { type: "flag_issue"; field: string; message: string }
-  | { type: "template"; field: string; template: string }; // e.g. "{Brand} - {Title}"
+// ── Zod validators ────────────────────────────────────────────────────────────
+// These are the source of truth. TypeScript types are derived from them below.
 
-export type PipelineRuleSpec = {
-  label: string;
-  plain_english: string;
-  stage: "format" | "quality" | "validation";
-  condition: RuleCondition;
-  action: RuleAction;
-};
+export const RuleConditionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("always") }),
+  z.object({ type: z.literal("field_empty"), field: z.string().min(1) }),
+  z.object({ type: z.literal("field_matches"), field: z.string().min(1), pattern: z.string().min(1) }),
+  z.object({ type: z.literal("field_not_in"), field: z.string().min(1), values: z.array(z.string()) }),
+]);
+
+export const RuleActionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("trim"), field: z.string().min(1) }),
+  z.object({ type: z.literal("lowercase"), field: z.string().min(1) }),
+  z.object({ type: z.literal("uppercase"), field: z.string().min(1) }),
+  z.object({ type: z.literal("replace"), field: z.string().min(1), find: z.string(), replace: z.string() }),
+  z.object({ type: z.literal("replace_map"), field: z.string().min(1), map: z.record(z.string(), z.string()) }),
+  z.object({ type: z.literal("set_default"), field: z.string().min(1), value: z.string() }),
+  z.object({ type: z.literal("prefix"), field: z.string().min(1), value: z.string() }),
+  z.object({ type: z.literal("suffix"), field: z.string().min(1), value: z.string() }),
+  z.object({ type: z.literal("strip_html"), field: z.string().min(1) }),
+  z.object({ type: z.literal("normalize_price"), field: z.string().min(1) }),
+  z.object({ type: z.literal("flag_issue"), field: z.string().min(1), message: z.string().min(1) }),
+  z.object({ type: z.literal("template"), field: z.string().min(1), template: z.string().min(1) }),
+  z.object({ type: z.literal("truncate"), field: z.string().min(1), max_length: z.number().int().positive() }),
+]);
+
+export const PipelineRuleSpecSchema = z.object({
+  label: z.string().min(1),
+  plain_english: z.string(),
+  stage: z.enum(["format", "quality", "validation"]),
+  condition: RuleConditionSchema,
+  action: RuleActionSchema,
+});
+
+// ── TypeScript types (derived — don't edit manually) ─────────────────────────
+
+export type RuleCondition = z.infer<typeof RuleConditionSchema>;
+export type RuleAction = z.infer<typeof RuleActionSchema>;
+export type PipelineRuleSpec = z.infer<typeof PipelineRuleSpecSchema>;
 
 export type ProposedRule = PipelineRuleSpec & {
   affected_count: number;

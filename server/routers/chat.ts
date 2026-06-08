@@ -3,6 +3,10 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { processChatInstruction } from "@/lib/pipeline/chat";
+import { runPipelineTransform } from "@/lib/pipeline/runner";
+import { runSyncPipeline } from "@/lib/pipeline/sync-runner";
+import { runSyncAudit } from "@/lib/pipeline/audit";
+import { PipelineRuleSpecSchema } from "@/lib/pipeline/rule-schema";
 import type { PipelineRuleSpec } from "@/lib/pipeline/rule-schema";
 
 export const chatRouter = createTRPCRouter({
@@ -77,7 +81,7 @@ export const chatRouter = createTRPCRouter({
         .eq("dedup_status", "kept")
         .limit(200);
 
-      // Load message history for context
+      // Load message history for context (last 10 exchanges = 20 messages)
       const { data: history } = await ctx.supabase
         .from("chat_messages")
         .select("role, content")
@@ -92,13 +96,17 @@ export const chatRouter = createTRPCRouter({
         history: (history ?? []).slice(0, -1), // exclude the message we just saved
       });
 
-      // Save assistant response
+      // Save assistant response — include rule JSON in content so history retains full context
+      const assistantContent = result.is_question || !result.rule
+        ? result.explanation
+        : `${result.explanation}\n\n[Proposed rule: ${JSON.stringify(result.rule)}]`;
+
       const { data: assistantMsg } = await ctx.supabase
         .from("chat_messages")
         .insert({
           session_id: input.sessionId,
           role: "assistant",
-          content: result.explanation,
+          content: assistantContent,
           payload: result,
         })
         .select()
@@ -113,6 +121,7 @@ export const chatRouter = createTRPCRouter({
       messageId: z.string().uuid(),
       sourceId: z.string().uuid(),
       saveAsRule: z.boolean().default(false),
+      saveAsGlobalRule: z.boolean().default(false),
     }))
     .mutation(async ({ ctx, input }) => {
       const service = createServiceClient();
@@ -134,19 +143,29 @@ export const chatRouter = createTRPCRouter({
 
       if (!payload.rule) throw new TRPCError({ code: "BAD_REQUEST", message: "No rule in payload" });
 
-      // Save as pipeline rule if requested
+      // Validate rule shape before doing anything with it
+      const ruleValidation = PipelineRuleSpecSchema.safeParse(payload.rule);
+      if (!ruleValidation.success) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Invalid rule: ${ruleValidation.error.issues[0]?.message ?? "unknown error"}`,
+        });
+      }
+      const validatedRule = ruleValidation.data;
+
+      // Save as pipeline rule if requested (source or global scope)
       let ruleId: string | null = null;
-      if (input.saveAsRule) {
+      if (input.saveAsRule || input.saveAsGlobalRule) {
         const { data: savedRule } = await ctx.supabase
           .from("pipeline_rules")
           .insert({
-            source_id: input.sourceId,
+            source_id: input.saveAsGlobalRule ? null : input.sourceId,
             merchant_id: ctx.user.id,
-            label: payload.rule.label,
-            plain_english: payload.rule.plain_english,
-            stage: payload.rule.stage ?? "quality",
-            conditions: payload.rule.condition,
-            actions: payload.rule.action,
+            label: validatedRule.label,
+            plain_english: validatedRule.plain_english,
+            stage: validatedRule.stage,
+            conditions: validatedRule.condition,
+            actions: validatedRule.action,
             enabled: true,
             sort_order: 999,
             origin: "chat",
@@ -178,37 +197,22 @@ export const chatRouter = createTRPCRouter({
 
       if (!source) throw new TRPCError({ code: "NOT_FOUND" });
 
-      // Import and run pipeline inline
-      const { applyRules } = await import("@/lib/pipeline/rule-engine");
-      const { default: Papa } = await import("papaparse");
-
-      const { data: fileData } = await service.storage.from("feeds").download(source.storage_path);
-      if (!fileData) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-
-      const csvText = await fileData.text();
-      const parsed = Papa.parse<Record<string, string>>(csvText, { header: true, skipEmptyLines: true });
-
-      const { data: rulesData } = await service
-        .from("pipeline_rules")
-        .select("*")
-        .eq("source_id", input.sourceId)
-        .eq("enabled", true)
-        .order("sort_order", { ascending: true });
-
-      const specs = (rulesData ?? []).map((r) => ({
-        label: r.label,
-        plain_english: r.plain_english,
-        stage: r.stage,
-        condition: r.conditions,
-        action: r.actions,
-      }));
-
-      const rawRows = parsed.data;
-
-      // Always include the chat rule in this run (whether saved permanently or not)
-      const chatSpec = payload.rule as unknown as PipelineRuleSpec;
-      const allSpecs = [...(specs as PipelineRuleSpec[]), chatSpec];
-      const { rows } = applyRules(rawRows, allSpecs);
+      // Run full pipeline (defaults → globals → source rules).
+      // Only inject chatSpec as extraRules when it was NOT saved to DB —
+      // if saved, the runner loads it from DB and injecting it again would apply it twice.
+      const chatSpec: PipelineRuleSpec = validatedRule;
+      const savedToDB = input.saveAsRule || input.saveAsGlobalRule;
+      const { rawRows, rows, validationIssuesByRow } = await runPipelineTransform({
+        serviceClient: service,
+        source: {
+          id: input.sourceId,
+          storage_path: source.storage_path,
+          column_mapping: source.column_mapping ?? {},
+          merchant_id: ctx.user.id,
+          disabled_default_rules: source.disabled_default_rules ?? [],
+        },
+        extraRules: savedToDB ? [] : [chatSpec],
+      });
 
       await service.from("canonical_products").delete().eq("source_id", input.sourceId);
 
@@ -221,7 +225,7 @@ export const chatRouter = createTRPCRouter({
           data: row,
           original_data: rawRows[i + offset],
           dedup_status: "kept",
-          validation_issues: [],
+          validation_issues: validationIssuesByRow.get(i + offset) ?? [],
         }));
         await service.from("canonical_products").insert(batch);
       }
@@ -229,6 +233,246 @@ export const chatRouter = createTRPCRouter({
       await service.from("data_sources")
         .update({ pipeline_status: "done", pipeline_last_run_at: new Date().toISOString() })
         .eq("id", input.sourceId);
+
+      return { success: true, ruleId };
+    }),
+
+  sendSyncMessage: protectedProcedure
+    .input(z.object({
+      sessionId: z.string().uuid(),
+      syncId: z.string().uuid(),
+      message: z.string().min(1),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const service = createServiceClient();
+
+      await ctx.supabase.from("chat_messages").insert({
+        session_id: input.sessionId,
+        role: "user",
+        content: input.message,
+      });
+
+      const { data: sync } = await ctx.supabase
+        .from("platform_syncs")
+        .select("*")
+        .eq("id", input.syncId)
+        .eq("merchant_id", ctx.user.id)
+        .single();
+
+      if (!sync) throw new TRPCError({ code: "NOT_FOUND" });
+
+      // Get products through sync pipeline (sample)
+      const result = await runSyncPipeline({
+        serviceClient: service,
+        sync: {
+          id: sync.id,
+          merchant_id: sync.merchant_id,
+          platform: sync.platform,
+          source_ids: sync.source_ids,
+          filter_rules: sync.filter_rules ?? [],
+        },
+      });
+
+      const sampleProducts = result.rows.slice(0, 200).map((row, i) => ({
+        id: crypto.randomUUID(),
+        row_index: i,
+        data: row,
+        original_data: row,
+      }));
+
+      const { data: history } = await ctx.supabase
+        .from("chat_messages")
+        .select("role, content")
+        .eq("session_id", input.sessionId)
+        .order("created_at", { ascending: true })
+        .limit(20);
+
+      const platformLabel = sync.platform === "google_shopping" ? "Google Shopping" : "Meta Catalog";
+
+      const fakeSource = {
+        name: `${sync.name} (${platformLabel} sync)`,
+        column_mapping: result.columnMapping,
+      };
+
+      const chatResult = await processChatInstruction({
+        instruction: input.message,
+        source: fakeSource,
+        products: sampleProducts,
+        history: (history ?? []).slice(0, -1),
+      });
+
+      const assistantContent = chatResult.is_question || !chatResult.rule
+        ? chatResult.explanation
+        : `${chatResult.explanation}\n\n[Proposed rule: ${JSON.stringify(chatResult.rule)}]`;
+
+      const { data: assistantMsg } = await ctx.supabase
+        .from("chat_messages")
+        .insert({
+          session_id: input.sessionId,
+          role: "assistant",
+          content: assistantContent,
+          payload: chatResult,
+        })
+        .select()
+        .single();
+
+      return assistantMsg;
+    }),
+
+  saveAuditRule: protectedProcedure
+    .input(z.object({
+      syncId: z.string().uuid(),
+      rule: PipelineRuleSpecSchema,
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { data: savedRule, error } = await ctx.supabase
+        .from("pipeline_rules")
+        .insert({
+          sync_id: input.syncId,
+          source_id: null,
+          merchant_id: ctx.user.id,
+          label: input.rule.label,
+          plain_english: input.rule.plain_english,
+          stage: input.rule.stage,
+          conditions: input.rule.condition,
+          actions: input.rule.action,
+          enabled: true,
+          sort_order: 999,
+          origin: "ai_recommended",
+        })
+        .select()
+        .single();
+
+      if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+      return { ruleId: savedRule.id };
+    }),
+
+  runSyncAudit: protectedProcedure
+    .input(z.object({ syncId: z.string().uuid(), sessionId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const service = createServiceClient();
+
+      const { data: sync } = await ctx.supabase
+        .from("platform_syncs")
+        .select("*")
+        .eq("id", input.syncId)
+        .eq("merchant_id", ctx.user.id)
+        .single();
+
+      if (!sync) throw new TRPCError({ code: "NOT_FOUND" });
+
+      // Save user message
+      await ctx.supabase.from("chat_messages").insert({
+        session_id: input.sessionId,
+        role: "user",
+        content: "Audit my feed",
+      });
+
+      // Load persisted sync products (fast path — no pipeline re-run)
+      const { data: syncProducts } = await service
+        .from("sync_products")
+        .select("data")
+        .eq("sync_id", input.syncId)
+        .order("row_index", { ascending: true })
+        .limit(500);
+
+      const rows = (syncProducts ?? []).map((p) => p.data as Record<string, string>);
+
+      // Fall back to pipeline run if no persisted products
+      let columnMapping: Record<string, string> = sync.column_mapping ?? {};
+      if (rows.length === 0) {
+        const result = await runSyncPipeline({
+          serviceClient: service,
+          sync: {
+            id: sync.id,
+            merchant_id: sync.merchant_id,
+            platform: sync.platform,
+            source_ids: sync.source_ids,
+            filter_rules: sync.filter_rules ?? [],
+          },
+        });
+        rows.push(...result.rows);
+        columnMapping = result.columnMapping;
+      }
+
+      const report = await runSyncAudit({
+        rows,
+        platform: sync.platform,
+        columnMapping,
+      });
+
+      // Save as assistant message with audit_report payload type
+      const { data: assistantMsg } = await ctx.supabase
+        .from("chat_messages")
+        .insert({
+          session_id: input.sessionId,
+          role: "assistant",
+          content: report.summary,
+          payload: { type: "audit_report", ...report },
+        })
+        .select()
+        .single();
+
+      return assistantMsg;
+    }),
+
+  applySyncOperation: protectedProcedure
+    .input(z.object({
+      sessionId: z.string().uuid(),
+      messageId: z.string().uuid(),
+      syncId: z.string().uuid(),
+      saveAsRule: z.boolean().default(false),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { data: msg } = await ctx.supabase
+        .from("chat_messages")
+        .select("*")
+        .eq("id", input.messageId)
+        .single();
+
+      if (!msg?.payload) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const payload = msg.payload as { rule: Record<string, unknown>; affected_count: number; instruction: string };
+      if (!payload.rule) throw new TRPCError({ code: "BAD_REQUEST", message: "No rule in payload" });
+
+      const ruleValidation = PipelineRuleSpecSchema.safeParse(payload.rule);
+      if (!ruleValidation.success) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: `Invalid rule: ${ruleValidation.error.issues[0]?.message}` });
+      }
+      const validatedRule = ruleValidation.data;
+
+      let ruleId: string | null = null;
+      if (input.saveAsRule) {
+        const { data: savedRule } = await ctx.supabase
+          .from("pipeline_rules")
+          .insert({
+            sync_id: input.syncId,
+            source_id: null,
+            merchant_id: ctx.user.id,
+            label: validatedRule.label,
+            plain_english: validatedRule.plain_english,
+            stage: validatedRule.stage,
+            conditions: validatedRule.condition,
+            actions: validatedRule.action,
+            enabled: true,
+            sort_order: 999,
+            origin: "chat",
+          })
+          .select()
+          .single();
+        ruleId = savedRule?.id ?? null;
+      }
+
+      await ctx.supabase.from("batch_operations").insert({
+        merchant_id: ctx.user.id,
+        context_type: "sync",
+        context_id: input.syncId,
+        instruction: payload.instruction,
+        affected_count: payload.affected_count,
+        status: "applied",
+        rule_id: ruleId,
+        applied_at: new Date().toISOString(),
+      });
 
       return { success: true, ruleId };
     }),

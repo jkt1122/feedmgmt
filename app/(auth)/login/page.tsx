@@ -20,11 +20,11 @@ export default function LoginPage() {
   });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-mist">
-      <div className="w-full max-w-sm bg-white border border-border rounded-lg p-8 shadow-sm">
+    <div className="min-h-screen flex items-center justify-center bg-accent">
+      <div className="w-full max-w-sm bg-card border border-border rounded-lg p-8 shadow-sm">
         <div className="mb-8">
-          <h1 className="text-xl font-semibold text-ink">FeedMgmt</h1>
-          <p className="text-base text-slate mt-1">Sign in to your account</p>
+          <h1 className="text-xl font-semibold text-foreground">FeedMgmt</h1>
+          <p className="text-base text-muted-foreground mt-1">Sign in to your account</p>
         </div>
 
         <form
@@ -36,7 +36,7 @@ export default function LoginPage() {
           className="space-y-4"
         >
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-sm font-semibold text-ink">
+            <Label htmlFor="email" className="text-sm font-semibold text-foreground">
               Email
             </Label>
             <Input
@@ -50,7 +50,7 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-sm font-semibold text-ink">
+            <Label htmlFor="password" className="text-sm font-semibold text-foreground">
               Password
             </Label>
             <Input
@@ -63,21 +63,21 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <p className="text-sm text-red-600">{error}</p>
+            <p className="text-sm text-destructive">{error}</p>
           )}
 
           <Button
             type="submit"
-            className="w-full bg-electric hover:bg-accent-hover text-white font-semibold"
+            className="w-full bg-primary hover:bg-primary text-primary-foreground font-semibold"
             disabled={signIn.isPending}
           >
             {signIn.isPending ? "Signing in…" : "Sign in"}
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-slate">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           No account?{" "}
-          <Link href="/signup" className="text-electric font-medium hover:underline">
+          <Link href="/signup" className="text-primary font-medium hover:underline">
             Sign up
           </Link>
         </p>

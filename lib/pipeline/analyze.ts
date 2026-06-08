@@ -1,6 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { PipelineRuleSpec, ProposedRule } from "./rule-schema";
 import { previewRule } from "./rule-engine";
+import { DEFAULT_RULES } from "./defaults";
+
+const DEFAULT_RULE_LABELS = DEFAULT_RULES.map((r) => r.label);
 
 const SYSTEM_PROMPT = `You are a data quality expert analyzing product catalog CSV data for e-commerce feed management.
 
@@ -34,10 +37,13 @@ Action types:
 IMPORTANT:
 - Use the exact source column names from the data (not canonical field names)
 - Propose 3-8 rules maximum — only the most impactful ones
-- Focus on: whitespace/HTML in text fields, inconsistent availability/condition values, price format issues, missing required fields
-- For availability/condition fields, use replace_map to normalize values to standard ones
-- Do not propose rules for fields that look clean
-- Return ONLY the JSON array, no other text`;
+- Focus on: inconsistent categorical values, brand-specific formatting, missing optional-but-recommended fields, custom label opportunities
+- Do NOT suggest rules that are already handled automatically (listed below) — focus on feed-specific issues
+- Return ONLY the JSON array, no other text
+
+Already handled automatically (do not suggest these):
+${DEFAULT_RULE_LABELS.map((l) => `- ${l}`).join("\n")}`;
+
 
 export async function analyzeDataForRules(
   rows: Record<string, string>[],
