@@ -21,7 +21,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-accent">
-      <div className="w-full max-w-sm bg-white border border-border rounded-lg p-8 shadow-sm">
+      <div className="w-full max-w-sm bg-card border border-border rounded-lg p-8 shadow-sm">
         <div className="mb-8">
           <h1 className="text-xl font-semibold text-foreground">FeedMgmt</h1>
           <p className="text-base text-muted-foreground mt-1">Sign in to your account</p>
@@ -63,12 +63,12 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <p className="text-sm text-red-600">{error}</p>
+            <p className="text-sm text-destructive">{error}</p>
           )}
 
           <Button
             type="submit"
-            className="w-full bg-primary hover:bg-primary text-white font-semibold"
+            className="w-full bg-primary hover:bg-primary text-primary-foreground font-semibold"
             disabled={signIn.isPending}
           >
             {signIn.isPending ? "Signing in…" : "Sign in"}

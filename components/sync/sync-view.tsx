@@ -88,7 +88,7 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
             {sync.name}
             <span className={cn(
               "text-xs font-bold px-1.5 py-0.5 rounded",
-              sync.platform === "google_shopping" ? "bg-blue-50 text-blue-700" : "bg-accent text-deep"
+              sync.platform === "google_shopping" ? "bg-info/10 text-info" : "bg-primary/10 text-primary"
             )}>
               {platformLabel}
             </span>
@@ -126,7 +126,7 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
               "inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors",
               neverRun
                 ? "bg-border text-muted-foreground cursor-not-allowed"
-                : "bg-primary text-white hover:bg-primary/90"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
             )}
           >
             <Download className="w-3 h-3" />
@@ -135,7 +135,7 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            className="p-1.5 text-muted-foreground hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+            className="p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors"
             title="Delete sync"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -145,9 +145,9 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
 
       {/* Source issues banner (wired to real data) */}
       {!issueBannerDismissed && sourceIssues.length > 0 && (
-        <div className="flex items-center gap-3 px-5 py-2 bg-amber-50 border-b border-amber-200 flex-shrink-0">
-          <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
-          <span className="text-xs text-amber-900 flex-1">
+        <div className="flex items-center gap-3 px-5 py-2 bg-warning/10 border-b border-warning/20 flex-shrink-0">
+          <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0" />
+          <span className="text-xs text-warning flex-1">
             {sourceIssues.map((src, i) => (
               <span key={src.sourceId}>
                 {i > 0 && " · "}
@@ -159,7 +159,7 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
             {" · "}
             <a href="/sources" className="font-semibold underline">Review in data sources →</a>
           </span>
-          <button type="button" onClick={() => setIssueBannerDismissed(true)} className="text-amber-600 hover:text-amber-800 p-0.5">
+          <button type="button" onClick={() => setIssueBannerDismissed(true)} className="text-warning hover:text-warning p-0.5">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -184,7 +184,7 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
               type="button"
               onClick={() => runSync.mutate({ id: sync.id })}
               disabled={runSync.isPending}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-primary px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               <RefreshCw className={cn("w-3 h-3", runSync.isPending && "animate-spin")} />
               {runSync.isPending ? "Running…" : "Run sync now"}
@@ -219,7 +219,7 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
                 return (
                   <tr key={i} className={cn(
                     "border-b border-border hover:bg-accent transition-colors",
-                    issues && issues.length > 0 && "bg-red-50/30"
+                    issues && issues.length > 0 && "bg-destructive/10"
                   )}>
                     <td className="px-3 h-9"><input type="checkbox" className="accent-primary w-3 h-3" /></td>
                     <td className="px-3 h-9 text-xs text-muted-foreground font-mono">{i + 1}</td>
@@ -235,8 +235,8 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
                           className={cn(
                             "px-3 h-9 max-w-xs truncate",
                             isDataField ? "font-mono text-xs" : "text-sm",
-                            hasFieldIssue ? "text-red-700 bg-red-50/60"
-                              : changed ? "text-green-700 bg-green-50/60"
+                            hasFieldIssue ? "text-destructive bg-destructive/10"
+                              : changed ? "text-success bg-success/10"
                               : "text-foreground"
                           )}
                           title={val || undefined}

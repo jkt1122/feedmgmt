@@ -109,7 +109,7 @@ export function SyncEditDialog({
                   )}
                 >
                   <input type="checkbox" readOnly checked={selectedSources.includes(src.id)} className="accent-primary w-4 h-4 flex-shrink-0" />
-                  <span className={cn("text-sm font-medium", selectedSources.includes(src.id) ? "text-deep" : "text-foreground")}>
+                  <span className={cn("text-sm font-medium", selectedSources.includes(src.id) ? "text-primary" : "text-foreground")}>
                     {src.name}
                   </span>
                 </button>
@@ -144,7 +144,7 @@ export function SyncEditDialog({
                     placeholder="value"
                     className="flex-1 text-sm bg-background border border-border rounded-lg px-3 py-1.5 outline-none focus:border-primary"
                   />
-                  <button type="button" onClick={() => removeFilter(i)} className="text-muted-foreground hover:text-red-600 p-1 rounded transition-colors">
+                  <button type="button" onClick={() => removeFilter(i)} className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -178,7 +178,7 @@ export function SyncEditDialog({
             disabled={!canSave || updateSync.isPending}
             className={cn(
               "text-sm font-semibold px-5 py-2 rounded-lg transition-colors",
-              canSave ? "bg-primary text-white hover:bg-primary/90" : "bg-border text-muted-foreground cursor-not-allowed"
+              canSave ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-border text-muted-foreground cursor-not-allowed"
             )}
           >
             {updateSync.isPending ? "Saving…" : "Save changes"}

@@ -98,9 +98,9 @@ export function SourceView({
               className={cn(
                 "text-xs font-semibold",
                 source.pipeline_status === "done"
-                  ? "bg-green-50 text-green-700 border-green-200"
+                  ? "bg-success/10 text-success border-success/20"
                   : source.pipeline_status === "error"
-                  ? "bg-red-50 text-red-700 border-red-200"
+                  ? "bg-destructive/10 text-destructive border-destructive/20"
                   : "bg-muted text-muted-foreground border-border"
               )}
               variant="outline"
@@ -109,11 +109,11 @@ export function SourceView({
             </Badge>
             {confirmDelete ? (
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-red-600 font-medium">Delete?</span>
+                <span className="text-xs text-destructive font-medium">Delete?</span>
                 <Button
                   onClick={() => deleteSource.mutate({ id: source.id })}
                   disabled={deleteSource.isPending}
-                  className="h-7 text-xs bg-red-500 hover:bg-red-600 text-white font-semibold px-2"
+                  className="h-7 text-xs bg-destructive hover:bg-destructive text-primary-foreground font-semibold px-2"
                 >
                   {deleteSource.isPending ? "Deleting…" : "Yes, delete"}
                 </Button>
@@ -129,7 +129,7 @@ export function SourceView({
               <Button
                 onClick={() => setConfirmDelete(true)}
                 variant="outline"
-                className="h-8 text-xs font-semibold gap-1.5 text-red-500 hover:text-red-600 hover:border-red-300"
+                className="h-8 text-xs font-semibold gap-1.5 text-destructive hover:text-destructive hover:border-destructive/20"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Delete
@@ -143,7 +143,7 @@ export function SourceView({
           <Stat label="Products" value={products.length.toLocaleString()} />
           <Stat label="Fields mapped" value={`${mappedFields.length} / ${CANONICAL_FIELDS.length}`} />
           {issueCount > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-amber-600">
+            <div className="flex items-center gap-1.5 text-xs text-warning">
               <AlertCircle className="w-3.5 h-3.5" />
               <span className="font-semibold">{issueCount} issues</span>
             </div>
@@ -276,7 +276,7 @@ function ProductTable({
                 key={product.id}
                 className={cn(
                   "border-b border-border hover:bg-accent transition-colors",
-                  hasIssues && "bg-red-50/50",
+                  hasIssues && "bg-destructive/10",
                   product.dedup_status === "removed" && "opacity-50"
                 )}
               >
@@ -293,7 +293,7 @@ function ProductTable({
                       className={cn(
                         "px-3 py-2 max-w-xs truncate",
                         isDataField ? "font-data text-xs" : "text-sm",
-                        transformed ? "text-green-700 bg-green-50/60" : "text-foreground"
+                        transformed ? "text-success bg-success/10" : "text-foreground"
                       )}
                       title={val}
                     >

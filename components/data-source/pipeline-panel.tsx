@@ -137,7 +137,7 @@ export function PipelinePanel({
                   ) : (
                     <button
                       onClick={() => toggleDefaultRule.mutate({ sourceId, ruleId: rule.id, disabled: true })}
-                      className="p-1 text-muted-foreground/40 hover:text-red-400 transition-colors shrink-0"
+                      className="p-1 text-muted-foreground/40 hover:text-destructive transition-colors shrink-0"
                       title="Remove for this feed"
                     >
                       <X className="w-3 h-3" />
@@ -249,7 +249,7 @@ function RuleRow({
         </button>
         <button
           onClick={onDelete}
-          className="p-1 hover:text-red-500 text-muted-foreground transition-colors"
+          className="p-1 hover:text-destructive text-muted-foreground transition-colors"
           title={isGlobal ? "Remove from all feeds" : "Delete rule"}
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -263,9 +263,9 @@ function StageBadge({ stage }: { stage: string }) {
   return (
     <span className={cn(
       "text-xs font-semibold px-1.5 py-0.5 rounded shrink-0",
-      stage === "format" ? "bg-blue-50 text-blue-600" :
-      stage === "quality" ? "bg-amber-50 text-amber-700" :
-      "bg-red-50 text-red-600"
+      stage === "format" ? "bg-info/10 text-info" :
+      stage === "quality" ? "bg-warning/10 text-warning" :
+      "bg-destructive/10 text-destructive"
     )}>
       {stage}
     </span>

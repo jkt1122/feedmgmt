@@ -28,7 +28,7 @@ export default async function SourcesPage() {
         </p>
         <Link
           href="/sources/new"
-          className={cn(buttonVariants(), "bg-primary hover:bg-[#6D28D9] text-white font-semibold")}
+          className={cn(buttonVariants(), "bg-primary hover:bg-primary/90 text-primary-foreground font-semibold")}
         >
           <Upload className="w-4 h-4 mr-2" />
           Upload CSV
@@ -43,7 +43,7 @@ export default async function SourcesPage() {
         <h1 className="text-2xl font-bold text-foreground">Data Sources</h1>
         <Link
           href="/sources/new"
-          className={cn(buttonVariants(), "bg-primary hover:bg-[#6D28D9] text-white font-semibold")}
+          className={cn(buttonVariants(), "bg-primary hover:bg-primary/90 text-primary-foreground font-semibold")}
         >
           <Upload className="w-4 h-4 mr-2" />
           Upload CSV
@@ -55,7 +55,7 @@ export default async function SourcesPage() {
           <Link
             key={source.id}
             href={`/sources/${source.id}`}
-            className="flex items-center justify-between p-4 bg-white border border-border rounded-lg hover:border-[#CBD5E1] transition-colors"
+            className="flex items-center justify-between p-4 bg-card border border-border rounded-lg hover:border-muted-foreground/40 transition-colors"
           >
             <div>
               <p className="text-sm font-semibold text-foreground">{source.name}</p>
@@ -64,10 +64,10 @@ export default async function SourcesPage() {
             <span
               className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                 source.pipeline_status === "done"
-                  ? "bg-green-50 text-green-700"
+                  ? "bg-success/10 text-success"
                   : source.pipeline_status === "error"
-                  ? "bg-red-50 text-red-700"
-                  : "bg-[#F8FAFC] text-muted-foreground"
+                  ? "bg-destructive/10 text-destructive"
+                  : "bg-muted text-muted-foreground"
               }`}
             >
               {source.pipeline_status}

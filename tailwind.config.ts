@@ -42,6 +42,10 @@ const config: Config = {
           DEFAULT: "var(--warning)",
           foreground: "var(--warning-foreground)",
         },
+        info: {
+          DEFAULT: "var(--info)",
+          foreground: "var(--info-foreground)",
+        },
         card: {
           DEFAULT: "var(--card)",
           foreground: "var(--card-foreground)",

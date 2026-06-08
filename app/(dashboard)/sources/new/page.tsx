@@ -108,7 +108,7 @@ export default function NewSourcePage() {
   if (step === "done") {
     return (
       <div className="flex flex-col items-center justify-center h-full">
-        <CheckCircle2 className="w-10 h-10 text-green-500 mb-3" />
+        <CheckCircle2 className="w-10 h-10 text-success mb-3" />
         <p className="text-base font-semibold text-foreground">Source created!</p>
         <p className="text-sm text-muted-foreground">Redirecting to your data…</p>
       </div>
@@ -189,12 +189,12 @@ export default function NewSourcePage() {
             </div>
           )}
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <Button
             onClick={handleUpload}
             disabled={!file || !sourceName || uploading}
-            className="w-full bg-primary hover:bg-primary text-white font-semibold"
+            className="w-full bg-primary hover:bg-primary text-primary-foreground font-semibold"
           >
             {uploading ? "Uploading…" : "Continue"}
             {!uploading && <ArrowRight className="w-4 h-4 ml-2" />}
@@ -245,7 +245,7 @@ export default function NewSourcePage() {
           <Button
             onClick={handleSaveMapping}
             disabled={updateMapping.isPending || runPipeline.isPending}
-            className="w-full bg-primary hover:bg-primary text-white font-semibold"
+            className="w-full bg-primary hover:bg-primary text-primary-foreground font-semibold"
           >
             {runPipeline.isPending ? "Importing products…" : updateMapping.isPending ? "Saving…" : "Save mapping & import"}
             {!updateMapping.isPending && !runPipeline.isPending && <ArrowRight className="w-4 h-4 ml-2" />}
@@ -277,7 +277,7 @@ function MappingRow({
         <div className="flex items-center gap-1.5">
           <span className="text-sm font-semibold text-foreground">{field.label}</span>
           {field.required && (
-            <span className="text-xs font-semibold text-red-500">*</span>
+            <span className="text-xs font-semibold text-destructive">*</span>
           )}
         </div>
         <p className="text-xs text-muted-foreground mt-0.5">{field.description}</p>
@@ -323,9 +323,9 @@ function StepBadge({
         className={cn(
           "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
           active
-            ? "bg-primary text-white"
+            ? "bg-primary text-primary-foreground"
             : done
-            ? "bg-green-500 text-white"
+            ? "bg-success text-primary-foreground"
             : "bg-muted text-muted-foreground"
         )}
       >

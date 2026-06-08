@@ -29,7 +29,7 @@ function Toggle({ on, onToggle, disabled }: { on: boolean; onToggle: () => void;
       aria-label={on ? "Disable" : "Enable"}
     >
       <span className={cn(
-        "absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all",
+        "absolute top-0.5 w-3 h-3 bg-card rounded-full shadow transition-all",
         on ? "left-3.5" : "left-0.5"
       )} />
     </button>
@@ -171,7 +171,7 @@ export function SyncRulesPanel({
                       </div>
                       <span className={cn(
                         "text-xs px-2 py-0.5 rounded-full flex-shrink-0",
-                        platform === "google_shopping" ? "bg-blue-50 text-blue-700" : "bg-accent text-deep"
+                        platform === "google_shopping" ? "bg-info/10 text-info" : "bg-primary/10 text-primary"
                       )}>
                         {platformLabel}
                       </span>
@@ -200,7 +200,7 @@ export function SyncRulesPanel({
                       </div>
                       <span className={cn(
                         "text-xs px-2 py-0.5 rounded-full flex-shrink-0",
-                        platform === "google_shopping" ? "bg-blue-50 text-blue-700" : "bg-accent text-deep"
+                        platform === "google_shopping" ? "bg-info/10 text-info" : "bg-primary/10 text-primary"
                       )}>
                         {platformLabel}
                       </span>

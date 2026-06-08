@@ -196,12 +196,12 @@ export function SyncChat({
         className="h-11 flex items-center gap-2.5 px-5 flex-shrink-0 border-b border-border hover:bg-accent transition-colors w-full text-left"
       >
         <div className="w-5 h-5 rounded-md bg-primary flex items-center justify-center flex-shrink-0">
-          <Sparkles className="w-3 h-3 text-white" />
+          <Sparkles className="w-3 h-3 text-primary-foreground" />
         </div>
         <span className="text-sm font-bold text-foreground">Feed Assistant</span>
         <span className="text-xs text-muted-foreground font-mono">· {syncName} · {platformLabel}</span>
         {recState === "pending" && recommendations.length > 0 && (
-          <span className="ml-1 text-xs font-semibold text-white bg-primary px-1.5 py-0.5 rounded-full">
+          <span className="ml-1 text-xs font-semibold text-primary-foreground bg-primary px-1.5 py-0.5 rounded-full">
             {recommendations.length} recommendations
           </span>
         )}
@@ -249,7 +249,7 @@ export function SyncChat({
                                 "w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors",
                                 selectedRecs.has(rule.id) ? "bg-primary border-primary" : "border-border bg-background"
                               )}>
-                                {selectedRecs.has(rule.id) && <Check className="w-2.5 h-2.5 text-white" />}
+                                {selectedRecs.has(rule.id) && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                               </div>
                               <div className="min-w-0">
                                 <div className="text-xs font-medium text-foreground">{rule.label}</div>
@@ -282,7 +282,7 @@ export function SyncChat({
                                 "w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors",
                                 selectedRecs.has(rule.id) ? "bg-primary border-primary" : "border-border bg-background"
                               )}>
-                                {selectedRecs.has(rule.id) && <Check className="w-2.5 h-2.5 text-white" />}
+                                {selectedRecs.has(rule.id) && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                               </div>
                               <div className="min-w-0">
                                 <div className="text-xs font-medium text-foreground">{rule.label}</div>
@@ -301,7 +301,7 @@ export function SyncChat({
                       type="button"
                       onClick={handleAcceptAll}
                       disabled={acceptRules.isPending}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
                       <Check className="w-3 h-3" />
                       {acceptRules.isPending ? "Applying…" : "Accept all"}
@@ -348,7 +348,7 @@ export function SyncChat({
                     </span>
                   ) : (
                     <>
-                      <span className="text-green-600 font-semibold">✓ Done.</span> The sync has been re-run with the accepted rules. You can toggle them on/off in the rules panel above, or ask me to add more.
+                      <span className="text-success font-semibold">✓ Done.</span> The sync has been re-run with the accepted rules. You can toggle them on/off in the rules panel above, or ask me to add more.
                     </>
                   )}
                 </div>
@@ -365,7 +365,7 @@ export function SyncChat({
                   className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-primary bg-accent hover:bg-accent/80 transition-colors text-left disabled:opacity-50"
                 >
                   <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-                    <ScanSearch className="w-4 h-4 text-white" />
+                    <ScanSearch className="w-4 h-4 text-primary-foreground" />
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-foreground">Audit my feed</div>
@@ -382,7 +382,7 @@ export function SyncChat({
               if (msg.role === "user") {
                 return (
                   <div key={msg.id} className="flex justify-end">
-                    <div className="bg-primary text-white text-sm px-3 py-2 rounded-xl max-w-xs">
+                    <div className="bg-primary text-primary-foreground text-sm px-3 py-2 rounded-xl max-w-xs">
                       {msg.content.split("\n\n[Proposed")[0]}
                     </div>
                   </div>
@@ -426,7 +426,7 @@ export function SyncChat({
                     {hasRule && (
                       <div className="px-4 py-2.5 border-t border-border bg-card flex items-center gap-2">
                         {isApplied ? (
-                          <span className="text-xs text-green-600 font-medium">
+                          <span className="text-xs text-success font-medium">
                             {isSaved ? "✓ Saved to sync rules" : "✓ Applied"}
                           </span>
                         ) : (
@@ -437,7 +437,7 @@ export function SyncChat({
                                 applyOp.mutate({ sessionId: sessionId!, messageId: msg.id, syncId, saveAsRule: true })
                               }
                               disabled={applyOp.isPending}
-                              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors"
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                             >
                               <BookmarkPlus className="w-3 h-3" />
                               Save to sync
@@ -505,7 +505,7 @@ export function SyncChat({
                 type="button"
                 onClick={submit}
                 disabled={!input.trim() || isLoading}
-                className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-white disabled:opacity-40 hover:bg-primary/90 transition-colors"
+                className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-primary-foreground disabled:opacity-40 hover:bg-primary/90 transition-colors"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -547,8 +547,8 @@ function AuditReportMessage({
   });
 
   const tierIcon = (tier: AuditFinding["tier"]) => {
-    if (tier === "ok") return <span className="text-green-600 font-bold text-sm">✓</span>;
-    if (tier === "warning") return <span className="text-amber-500 font-bold text-sm">▲</span>;
+    if (tier === "ok") return <span className="text-success font-bold text-sm">✓</span>;
+    if (tier === "warning") return <span className="text-warning font-bold text-sm">▲</span>;
     return <span className="text-primary font-bold text-sm">✦</span>;
   };
 
@@ -573,7 +573,7 @@ function AuditReportMessage({
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               {finding.scope === "pattern" && finding.suggested_rule && (
                 savedRuleIds.has(idx) ? (
-                  <span className="text-xs text-green-600 font-medium">✓ Rule saved</span>
+                  <span className="text-xs text-success font-medium">✓ Rule saved</span>
                 ) : (
                   <button
                     type="button"
@@ -591,7 +591,7 @@ function AuditReportMessage({
                         }
                       );
                     }}
-                    className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                   >
                     {savingIdx === idx ? <Loader2 className="w-3 h-3 animate-spin" /> : <BookmarkPlus className="w-3 h-3" />}
                     Fix all {finding.affected_count} products

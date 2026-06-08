@@ -73,7 +73,7 @@ export function AppSidebar() {
               onClick={() => setGoogleExpanded((e) => !e)}
               className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-muted transition-colors"
             >
-              <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded flex-shrink-0">G</span>
+              <span className="text-xs font-semibold text-info bg-info/10 px-1.5 py-0.5 rounded flex-shrink-0">G</span>
               <span className="text-sm font-medium text-foreground flex-1 text-left">Google Shopping</span>
               {googleExpanded
                 ? <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
@@ -107,7 +107,7 @@ export function AppSidebar() {
               onClick={() => setMetaExpanded((e) => !e)}
               className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-muted transition-colors"
             >
-              <span className="text-xs font-semibold text-deep bg-accent px-1.5 py-0.5 rounded flex-shrink-0">M</span>
+              <span className="text-xs font-semibold text-primary bg-accent px-1.5 py-0.5 rounded flex-shrink-0">M</span>
               <span className="text-sm font-medium text-foreground flex-1 text-left">Meta Catalog</span>
               {metaExpanded
                 ? <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />

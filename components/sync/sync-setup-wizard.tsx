@@ -95,8 +95,8 @@ export function SyncSetupWizard({
             <span className={cn(
               "text-xs font-bold px-1.5 py-0.5 rounded",
               platform === "google_shopping"
-                ? "bg-blue-50 text-blue-700"
-                : "bg-accent text-deep"
+                ? "bg-info/10 text-info"
+                : "bg-primary/10 text-primary"
             )}>
               {platformLabel}
             </span>
@@ -165,7 +165,7 @@ export function SyncSetupWizard({
                   <div>
                     <div className={cn(
                       "text-sm font-semibold",
-                      selectedSources.includes(src.id) ? "text-deep" : "text-foreground"
+                      selectedSources.includes(src.id) ? "text-primary" : "text-foreground"
                     )}>
                       {src.name}
                     </div>
@@ -229,7 +229,7 @@ export function SyncSetupWizard({
                   <button
                     type="button"
                     onClick={() => removeFilter(i)}
-                    className="text-muted-foreground hover:text-red-600 p-1 rounded transition-colors"
+                    className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -256,7 +256,7 @@ export function SyncSetupWizard({
             className={cn(
               "inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors",
               canSubmit
-                ? "bg-primary text-white hover:bg-primary/90"
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
                 : "bg-border text-muted-foreground cursor-not-allowed"
             )}
           >
@@ -266,7 +266,7 @@ export function SyncSetupWizard({
         </div>
 
         {createSync.error && (
-          <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
+          <div className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-2">
             {createSync.error.message}
           </div>
         )}
