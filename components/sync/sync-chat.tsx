@@ -541,7 +541,7 @@ function AuditReportMessage({
   const [savingIdx, setSavingIdx] = useState<number | null>(null);
 
   const saveAuditRule = trpc.chat.saveAuditRule.useMutation({
-    onSuccess: (_, vars) => {
+    onSuccess: () => {
       onRuleSaved();
     },
   });
@@ -555,7 +555,6 @@ function AuditReportMessage({
   const renderFindings = (findings: AuditFinding[], startIndex: number) =>
     findings.map((finding, i) => {
       const idx = startIndex + i;
-      const isSaved = savedRuleIds.has(idx);
       return (
         <div key={idx} className="flex items-start gap-2.5 py-2.5 border-b border-border last:border-0">
           <div className="w-5 flex-shrink-0 flex justify-center pt-0.5">{tierIcon(finding.tier)}</div>
