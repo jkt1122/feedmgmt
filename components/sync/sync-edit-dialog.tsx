@@ -2,8 +2,27 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { X, Plus } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 type FilterRule = {
   field: string;
@@ -66,109 +85,110 @@ export function SyncEditDialog({
   const canSave = name.trim().length > 0 && selectedSources.length > 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="bg-card rounded-2xl border border-border shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
-          <div>
-            <div className="text-sm font-bold text-foreground">Edit sync setup</div>
-            <div className="text-xs text-muted-foreground mt-0.5">Changes take effect on the next run</div>
-          </div>
-          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground p-1 rounded transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg max-h-[90vh] gap-0 p-0">
+        <DialogHeader className="px-6 py-4 border-b border-border">
+          <DialogTitle>Edit sync setup</DialogTitle>
+          <DialogDescription>Changes take effect on the next run</DialogDescription>
+        </DialogHeader>
 
         {/* Body */}
         <div className="overflow-y-auto flex-1 px-6 py-5 flex flex-col gap-5">
           {/* Name */}
-          <div>
-            <label className="text-xs font-semibold text-foreground block mb-1.5">Sync name</label>
-            <input
-              type="text"
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="sync-name">Sync name</Label>
+            <Input
+              id="sync-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
             />
           </div>
 
           {/* Sources */}
           <div>
-            <label className="text-xs font-semibold text-foreground block mb-2">Data sources</label>
+            <Label className="mb-2 block">Data sources</Label>
             <div className="flex flex-col gap-2">
-              {sources.map((src) => (
-                <button
-                  key={src.id}
-                  type="button"
-                  onClick={() => toggleSource(src.id)}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-2.5 rounded-lg border text-left transition-all",
-                    selectedSources.includes(src.id)
-                      ? "border-primary bg-accent"
-                      : "border-border bg-background hover:border-muted-foreground/40"
-                  )}
-                >
-                  <input type="checkbox" readOnly checked={selectedSources.includes(src.id)} className="accent-primary w-4 h-4 flex-shrink-0" />
-                  <span className={cn("text-sm font-medium", selectedSources.includes(src.id) ? "text-primary" : "text-foreground")}>
-                    {src.name}
-                  </span>
-                </button>
-              ))}
+              {sources.map((src) => {
+                const selected = selectedSources.includes(src.id);
+                return (
+                  <label
+                    key={src.id}
+                    className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-border bg-background cursor-pointer transition-colors hover:border-muted-foreground/40 has-data-[state=checked]:border-primary has-data-[state=checked]:bg-accent"
+                  >
+                    <Checkbox
+                      checked={selected}
+                      onCheckedChange={() => toggleSource(src.id)}
+                    />
+                    <span className={selected ? "text-sm font-medium text-primary" : "text-sm font-medium text-foreground"}>
+                      {src.name}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
           </div>
 
           {/* Filter rules */}
           <div>
-            <label className="text-xs font-semibold text-foreground block mb-2">Filter rules</label>
+            <Label className="mb-2 block">Filter rules</Label>
             <div className="flex flex-col gap-2 mb-2">
               {filterRules.map((rule, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <select
+                  <Select
                     value={rule.field}
-                    onChange={(e) => updateFilter(i, { field: e.target.value })}
-                    className="text-sm bg-background border border-border rounded-lg px-3 py-1.5 outline-none focus:border-primary"
+                    onValueChange={(v) => updateFilter(i, { field: v as string })}
                   >
-                    {FILTER_FIELDS.map((f) => <option key={f} value={f}>{f}</option>)}
-                  </select>
-                  <select
+                    <SelectTrigger className="w-36">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FILTER_FIELDS.map((f) => (
+                        <SelectItem key={f} value={f}>{f}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
                     value={rule.operator}
-                    onChange={(e) => updateFilter(i, { operator: e.target.value as FilterRule["operator"] })}
-                    className="text-sm bg-background border border-border rounded-lg px-3 py-1.5 outline-none focus:border-primary"
+                    onValueChange={(v) => updateFilter(i, { operator: v as FilterRule["operator"] })}
                   >
-                    {OPERATORS.map((op) => <option key={op.value} value={op.value}>{op.label}</option>)}
-                  </select>
-                  <input
-                    type="text"
+                    <SelectTrigger className="w-36">
+                      <SelectValue>
+                        {(value) => OPERATORS.find((o) => o.value === value)?.label}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {OPERATORS.map((op) => (
+                        <SelectItem key={op.value} value={op.value}>{op.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
                     value={rule.value}
                     onChange={(e) => updateFilter(i, { value: e.target.value })}
                     placeholder="value"
-                    className="flex-1 text-sm bg-background border border-border rounded-lg px-3 py-1.5 outline-none focus:border-primary"
+                    className="flex-1"
                   />
-                  <button type="button" onClick={() => removeFilter(i)} className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => removeFilter(i)}
+                    aria-label="Remove filter"
+                  >
+                    <X />
+                  </Button>
                 </div>
               ))}
             </div>
-            <button
-              type="button"
-              onClick={addFilter}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary px-3 py-1.5 rounded-lg border border-dashed border-primary/50 hover:bg-accent transition-colors"
-            >
-              <Plus className="w-3 h-3" />
+            <Button variant="outline" size="sm" onClick={addFilter}>
+              <Plus />
               Add filter
-            </button>
+            </Button>
           </div>
-
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-border flex items-center justify-between flex-shrink-0">
-          <button type="button" onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Cancel
-          </button>
-          <button
-            type="button"
+        <DialogFooter className="px-6 py-4 border-t border-border sm:justify-between">
+          <DialogClose render={<Button variant="ghost" />}>Cancel</DialogClose>
+          <Button
             onClick={() => updateSync.mutate({
               id: sync.id,
               name: name.trim(),
@@ -176,15 +196,11 @@ export function SyncEditDialog({
               filter_rules: filterRules.filter((f) => f.value.trim() !== ""),
             })}
             disabled={!canSave || updateSync.isPending}
-            className={cn(
-              "text-sm font-semibold px-5 py-2 rounded-lg transition-colors",
-              canSave ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-border text-muted-foreground cursor-not-allowed"
-            )}
           >
             {updateSync.isPending ? "Saving…" : "Save changes"}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

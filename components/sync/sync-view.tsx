@@ -9,6 +9,17 @@ import { CANONICAL_FIELDS } from "@/lib/canonical-fields";
 import { SyncRulesPanel } from "./sync-rules-panel";
 import { SyncChat } from "./sync-chat";
 import { SyncEditDialog } from "./sync-edit-dialog";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 type PlatformSync = {
   id: string;
@@ -101,45 +112,32 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setEditOpen(true)}
-            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-card transition-colors"
-          >
-            <Settings className="w-3 h-3" />
+          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+            <Settings />
             Edit setup
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => runSync.mutate({ id: sync.id })}
             disabled={runSync.isPending}
-            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-card transition-colors"
           >
-            <RefreshCw className={cn("w-3 h-3", runSync.isPending && "animate-spin")} />
+            <RefreshCw className={cn(runSync.isPending && "animate-spin")} />
             {runSync.isPending ? "Syncing…" : "Sync now"}
-          </button>
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={neverRun}
-            className={cn(
-              "inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors",
-              neverRun
-                ? "bg-border text-muted-foreground cursor-not-allowed"
-                : "bg-primary text-primary-foreground hover:bg-primary/90"
-            )}
-          >
-            <Download className="w-3 h-3" />
+          </Button>
+          <Button size="sm" onClick={handleExport} disabled={neverRun}>
+            <Download />
             Export feed
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={() => setConfirmDelete(true)}
-            className="p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors"
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
             title="Delete sync"
           >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+            <Trash2 />
+          </Button>
         </div>
       </div>
 
@@ -159,9 +157,15 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
             {" · "}
             <a href="/sources" className="font-semibold underline">Review in data sources →</a>
           </span>
-          <button type="button" onClick={() => setIssueBannerDismissed(true)} className="text-warning hover:text-warning p-0.5">
-            <X className="w-4 h-4" />
-          </button>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setIssueBannerDismissed(true)}
+            className="text-warning hover:text-warning"
+            aria-label="Dismiss"
+          >
+            <X />
+          </Button>
         </div>
       )}
 
@@ -180,15 +184,14 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
             <div className="text-3xl opacity-20">📦</div>
             <p className="text-sm font-medium text-foreground">Sync has not run yet</p>
             <p className="text-xs text-muted-foreground">Run the sync to process your sources and see the platform-ready feed.</p>
-            <button
-              type="button"
+            <Button
+              size="sm"
               onClick={() => runSync.mutate({ id: sync.id })}
               disabled={runSync.isPending}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              <RefreshCw className={cn("w-3 h-3", runSync.isPending && "animate-spin")} />
+              <RefreshCw className={cn(runSync.isPending && "animate-spin")} />
               {runSync.isPending ? "Running…" : "Run sync now"}
-            </button>
+            </Button>
           </div>
         ) : rows.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
@@ -199,7 +202,7 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
             <thead className="sticky top-0 bg-background z-10">
               <tr>
                 <th className="w-9 px-3 py-2 text-left border-b border-border">
-                  <input type="checkbox" className="accent-primary w-3 h-3" />
+                  <Checkbox />
                 </th>
                 <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide border-b border-border whitespace-nowrap">
                   #
@@ -221,7 +224,7 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
                     "border-b border-border hover:bg-accent transition-colors",
                     issues && issues.length > 0 && "bg-destructive/10"
                   )}>
-                    <td className="px-3 h-9"><input type="checkbox" className="accent-primary w-3 h-3" /></td>
+                    <td className="px-3 h-9"><Checkbox /></td>
                     <td className="px-3 h-9 text-xs text-muted-foreground font-mono">{i + 1}</td>
                     {visibleFields.map((f) => {
                       const val = row[f.key] ?? "";
@@ -276,34 +279,27 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
       )}
 
       {/* Delete confirmation modal */}
-      {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="bg-card rounded-2xl border border-border shadow-xl w-full max-w-sm p-6">
-            <h2 className="text-base font-bold text-foreground mb-1">Delete sync?</h2>
-            <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete sync?</DialogTitle>
+            <DialogDescription>
               <strong>&ldquo;{sync.name}&rdquo;</strong> and all its optimizations will be permanently deleted.
               Your source data is not affected.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(false)}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground px-4 py-2 rounded-lg border border-border hover:bg-background transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => deleteSync.mutate({ id: sync.id })}
-                disabled={deleteSync.isPending}
-                className="text-sm font-semibold text-destructive-foreground bg-destructive hover:opacity-90 px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {deleteSync.isPending ? "Deleting…" : "Delete sync"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+            <Button
+              variant="destructive"
+              onClick={() => deleteSync.mutate({ id: sync.id })}
+              disabled={deleteSync.isPending}
+            >
+              {deleteSync.isPending ? "Deleting…" : "Delete sync"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
