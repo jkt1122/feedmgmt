@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
 import { Upload } from "lucide-react";
@@ -10,10 +11,12 @@ export default async function SourcesPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   const { data: sources } = await supabase
     .from("data_sources")
     .select("*")
-    .eq("merchant_id", user!.id)
+    .eq("merchant_id", user.id)
     .order("uploaded_at", { ascending: false });
 
   if (!sources || sources.length === 0) {
