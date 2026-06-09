@@ -259,7 +259,6 @@ export function SyncView({ sync: initialSync }: { sync: PlatformSync }) {
       {/* Feed Assistant */}
       <SyncChat
         syncId={sync.id}
-        syncName={sync.name}
         platform={sync.platform}
         recommendationsSeen={sync.recommendations_seen}
         onRulesChanged={() => runSync.mutate({ id: sync.id })}

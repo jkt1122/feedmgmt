@@ -1,5 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { PipelineRuleSpec } from "./rule-schema";
+import { renderRuleCatalogForPrompt, validatePipelineRuleSpec } from "./rule-catalog";
+import { dryRunRule, type RuleDryRun } from "./proposals";
 
 export type AuditFindingScope = "single" | "pattern";
 export type AuditFindingTier = "ok" | "warning" | "opportunity";
@@ -12,6 +14,7 @@ export type AuditFinding = {
   affected_count: number;
   affected_row_indexes?: number[];
   suggested_rule?: PipelineRuleSpec;
+  dry_run?: RuleDryRun;
 };
 
 export type AuditReport = {
@@ -57,22 +60,11 @@ PipelineRuleSpec shape for suggested_rule:
   "label": "Short rule name",
   "plain_english": "What this rule does",
   "stage": "format" | "quality" | "validation",
-  "condition": { "type": "always" } | { "type": "field_empty", "field": "..." } | { "type": "field_matches", "field": "...", "pattern": "..." } | { "type": "field_not_in", "field": "...", "values": [...] },
+  "condition": one of the condition types below,
   "action": one of the action types below
 }
 
-Action types:
-- { "type": "trim", "field": "..." }
-- { "type": "strip_html", "field": "..." }
-- { "type": "replace_map", "field": "...", "map": { "old": "new" } }
-- { "type": "normalize_price", "field": "..." }
-- { "type": "set_default", "field": "...", "value": "..." }
-- { "type": "replace", "field": "...", "find": "...", "replace": "..." }
-- { "type": "uppercase", "field": "..." }
-- { "type": "lowercase", "field": "..." }
-- { "type": "template", "field": "...", "template": "{Col1} {Col2}" }
-- { "type": "truncate", "field": "...", "max_length": <number> }
-- { "type": "flag_issue", "field": "...", "message": "..." }
+${renderRuleCatalogForPrompt()}
 
 Focus on the most impactful findings. Return 4–10 findings total. Prioritize warnings over opportunities. Return ONLY the JSON object.`;
 
@@ -133,9 +125,27 @@ Audit this feed for ${platformLabel} quality, compliance, and optimization oppor
 
   try {
     const parsed = JSON.parse(jsonStr) as AuditReport;
+    const findings = Array.isArray(parsed.findings) ? parsed.findings : [];
+    const validatedFindings = findings.map((finding) => {
+      if (!finding.suggested_rule) return finding;
+      const validation = validatePipelineRuleSpec(finding.suggested_rule);
+      if (!validation.ok) {
+        return {
+          ...finding,
+          suggested_rule: undefined,
+        };
+      }
+      const dryRun = dryRunRule(rows, validation.rule);
+      return {
+        ...finding,
+        affected_count: dryRun.affected_count,
+        suggested_rule: dryRun.affected_count > 0 ? validation.rule : undefined,
+        dry_run: dryRun.affected_count > 0 ? dryRun : undefined,
+      };
+    });
     return {
       summary: parsed.summary ?? "Audit complete.",
-      findings: Array.isArray(parsed.findings) ? parsed.findings : [],
+      findings: validatedFindings,
     };
   } catch {
     return {

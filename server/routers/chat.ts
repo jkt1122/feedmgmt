@@ -7,7 +7,8 @@ import { runPipelineTransform } from "@/lib/pipeline/runner";
 import { runSyncPipeline } from "@/lib/pipeline/sync-runner";
 import { runSyncAudit } from "@/lib/pipeline/audit";
 import { PipelineRuleSpecSchema } from "@/lib/pipeline/rule-schema";
-import type { PipelineRuleSpec } from "@/lib/pipeline/rule-schema";
+import { validatePipelineRuleSpec } from "@/lib/pipeline/rule-catalog";
+import { fingerprintRule } from "@/lib/pipeline/proposals";
 
 export const chatRouter = createTRPCRouter({
   getOrCreateSession: protectedProcedure
@@ -144,14 +145,14 @@ export const chatRouter = createTRPCRouter({
       if (!payload.rule) throw new TRPCError({ code: "BAD_REQUEST", message: "No rule in payload" });
 
       // Validate rule shape before doing anything with it
-      const ruleValidation = PipelineRuleSpecSchema.safeParse(payload.rule);
-      if (!ruleValidation.success) {
+      const ruleValidation = validatePipelineRuleSpec(payload.rule);
+      if (!ruleValidation.ok) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `Invalid rule: ${ruleValidation.error.issues[0]?.message ?? "unknown error"}`,
+          message: `Invalid rule: ${ruleValidation.reason}`,
         });
       }
-      const validatedRule = ruleValidation.data;
+      const validatedRule = ruleValidation.rule;
 
       // Save as pipeline rule if requested (source or global scope)
       let ruleId: string | null = null;
@@ -197,11 +198,7 @@ export const chatRouter = createTRPCRouter({
 
       if (!source) throw new TRPCError({ code: "NOT_FOUND" });
 
-      // Run full pipeline (defaults → globals → source rules).
-      // Only inject chatSpec as extraRules when it was NOT saved to DB —
-      // if saved, the runner loads it from DB and injecting it again would apply it twice.
-      const chatSpec: PipelineRuleSpec = validatedRule;
-      const savedToDB = input.saveAsRule || input.saveAsGlobalRule;
+      // Sources stay raw. Re-import the file without applying transformation rules.
       const { rawRows, rows, validationIssuesByRow } = await runPipelineTransform({
         serviceClient: service,
         source: {
@@ -211,7 +208,6 @@ export const chatRouter = createTRPCRouter({
           merchant_id: ctx.user.id,
           disabled_default_rules: source.disabled_default_rules ?? [],
         },
-        extraRules: savedToDB ? [] : [chatSpec],
       });
 
       await service.from("canonical_products").delete().eq("source_id", input.sourceId);
@@ -301,6 +297,28 @@ export const chatRouter = createTRPCRouter({
         history: (history ?? []).slice(0, -1),
       });
 
+      if (chatResult.rule && !chatResult.is_question) {
+        const fingerprint = fingerprintRule(chatResult.rule);
+        const { data: memory } = await ctx.supabase
+          .from("rule_memories")
+          .select("decision")
+          .eq("merchant_id", ctx.user.id)
+          .eq("sync_id", input.syncId)
+          .eq("fingerprint", fingerprint)
+          .limit(1)
+          .maybeSingle();
+
+        if (memory) {
+          chatResult.is_question = true;
+          chatResult.explanation = memory.decision === "accepted"
+            ? "That rule is already saved for this sync."
+            : "You already rejected that rule for this sync, so I will not propose it again.";
+          chatResult.rule = null;
+          chatResult.affected_count = 0;
+          chatResult.preview = [];
+        }
+      }
+
       const assistantContent = chatResult.is_question || !chatResult.rule
         ? chatResult.explanation
         : `${chatResult.explanation}\n\n[Proposed rule: ${JSON.stringify(chatResult.rule)}]`;
@@ -325,6 +343,15 @@ export const chatRouter = createTRPCRouter({
       rule: PipelineRuleSpecSchema,
     }))
     .mutation(async ({ ctx, input }) => {
+      const { data: sync } = await ctx.supabase
+        .from("platform_syncs")
+        .select("platform")
+        .eq("id", input.syncId)
+        .eq("merchant_id", ctx.user.id)
+        .single();
+
+      if (!sync) throw new TRPCError({ code: "NOT_FOUND" });
+
       const { data: savedRule, error } = await ctx.supabase
         .from("pipeline_rules")
         .insert({
@@ -344,6 +371,19 @@ export const chatRouter = createTRPCRouter({
         .single();
 
       if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+      await ctx.supabase.from("rule_memories").upsert(
+        {
+          merchant_id: ctx.user.id,
+          sync_id: input.syncId,
+          platform: sync.platform,
+          scope: "sync",
+          decision: "accepted",
+          fingerprint: fingerprintRule(input.rule),
+          origin: "agent_reasoned",
+          rule_spec: input.rule,
+        },
+        { onConflict: "merchant_id,sync_id,fingerprint,decision" }
+      );
       return { ruleId: savedRule.id };
     }),
 
@@ -435,14 +475,23 @@ export const chatRouter = createTRPCRouter({
       const payload = msg.payload as { rule: Record<string, unknown>; affected_count: number; instruction: string };
       if (!payload.rule) throw new TRPCError({ code: "BAD_REQUEST", message: "No rule in payload" });
 
-      const ruleValidation = PipelineRuleSpecSchema.safeParse(payload.rule);
-      if (!ruleValidation.success) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: `Invalid rule: ${ruleValidation.error.issues[0]?.message}` });
+      const ruleValidation = validatePipelineRuleSpec(payload.rule);
+      if (!ruleValidation.ok) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: `Invalid rule: ${ruleValidation.reason}` });
       }
-      const validatedRule = ruleValidation.data;
+      const validatedRule = ruleValidation.rule;
 
       let ruleId: string | null = null;
       if (input.saveAsRule) {
+        const { data: sync } = await ctx.supabase
+          .from("platform_syncs")
+          .select("platform")
+          .eq("id", input.syncId)
+          .eq("merchant_id", ctx.user.id)
+          .single();
+
+        if (!sync) throw new TRPCError({ code: "NOT_FOUND" });
+
         const { data: savedRule } = await ctx.supabase
           .from("pipeline_rules")
           .insert({
@@ -461,6 +510,20 @@ export const chatRouter = createTRPCRouter({
           .select()
           .single();
         ruleId = savedRule?.id ?? null;
+
+        await ctx.supabase.from("rule_memories").upsert(
+          {
+            merchant_id: ctx.user.id,
+            sync_id: input.syncId,
+            platform: sync.platform,
+            scope: "sync",
+            decision: "accepted",
+            fingerprint: fingerprintRule(validatedRule),
+            origin: "user_request",
+            rule_spec: validatedRule,
+          },
+          { onConflict: "merchant_id,sync_id,fingerprint,decision" }
+        );
       }
 
       await ctx.supabase.from("batch_operations").insert({
@@ -475,5 +538,53 @@ export const chatRouter = createTRPCRouter({
       });
 
       return { success: true, ruleId };
+    }),
+
+  rejectSyncOperation: protectedProcedure
+    .input(z.object({
+      messageId: z.string().uuid(),
+      syncId: z.string().uuid(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { data: msg } = await ctx.supabase
+        .from("chat_messages")
+        .select("*")
+        .eq("id", input.messageId)
+        .single();
+
+      if (!msg?.payload) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const payload = msg.payload as { rule: Record<string, unknown> };
+      if (!payload.rule) throw new TRPCError({ code: "BAD_REQUEST", message: "No rule in payload" });
+
+      const validation = validatePipelineRuleSpec(payload.rule);
+      if (!validation.ok) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: `Invalid rule: ${validation.reason}` });
+      }
+
+      const { data: sync } = await ctx.supabase
+        .from("platform_syncs")
+        .select("platform")
+        .eq("id", input.syncId)
+        .eq("merchant_id", ctx.user.id)
+        .single();
+
+      if (!sync) throw new TRPCError({ code: "NOT_FOUND" });
+
+      await ctx.supabase.from("rule_memories").upsert(
+        {
+          merchant_id: ctx.user.id,
+          sync_id: input.syncId,
+          platform: sync.platform,
+          scope: "sync",
+          decision: "rejected",
+          fingerprint: fingerprintRule(validation.rule),
+          origin: "user_request",
+          rule_spec: validation.rule,
+        },
+        { onConflict: "merchant_id,sync_id,fingerprint,decision" }
+      );
+
+      return { success: true };
     }),
 });

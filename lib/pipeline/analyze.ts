@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { PipelineRuleSpec, ProposedRule } from "./rule-schema";
 import { previewRule } from "./rule-engine";
 import { DEFAULT_RULES } from "./defaults";
+import { renderRuleCatalogForPrompt, validatePipelineRuleSpec } from "./rule-catalog";
 
 const DEFAULT_RULE_LABELS = DEFAULT_RULES.map((r) => r.label);
 
@@ -18,21 +19,7 @@ You must respond with a JSON array of rule objects. Each rule has this exact str
   "action": <action object>
 }
 
-Condition types:
-- { "type": "always" }
-- { "type": "field_empty", "field": "<source_column_name>" }
-- { "type": "field_matches", "field": "<source_column_name>", "pattern": "<regex>" }
-- { "type": "field_not_in", "field": "<source_column_name>", "values": ["val1", "val2"] }
-
-Action types:
-- { "type": "trim", "field": "<source_column_name>" }
-- { "type": "strip_html", "field": "<source_column_name>" }
-- { "type": "replace_map", "field": "<source_column_name>", "map": { "old": "new" } }
-- { "type": "normalize_price", "field": "<source_column_name>" }
-- { "type": "set_default", "field": "<source_column_name>", "value": "<default>" }
-- { "type": "replace", "field": "<source_column_name>", "find": "<text>", "replace": "<text>" }
-- { "type": "template", "field": "<target_column>", "template": "{SourceCol1} - {SourceCol2}" }
-- { "type": "flag_issue", "field": "<source_column_name>", "message": "<issue description>" }
+${renderRuleCatalogForPrompt()}
 
 IMPORTANT:
 - Use the exact source column names from the data (not canonical field names)
@@ -115,8 +102,9 @@ Propose transformation rules to improve data quality.`;
   for (const objStr of objectMatches) {
     try {
       const parsed = JSON.parse(objStr);
-      if (parsed.label && parsed.action && parsed.condition) {
-        specs.push(parsed as PipelineRuleSpec);
+      const validation = validatePipelineRuleSpec(parsed);
+      if (validation.ok) {
+        specs.push(validation.rule);
       }
     } catch {
       // skip malformed objects

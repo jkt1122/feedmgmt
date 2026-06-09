@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { PipelineRuleSpec } from "./rule-schema";
 import { previewRule } from "./rule-engine";
+import { renderRuleCatalogForPrompt, validatePipelineRuleSpec } from "./rule-catalog";
 
 type Product = {
   id: string;
@@ -70,22 +71,7 @@ Use TYPE 1 for any instruction to modify, clean, format, or enrich field values.
 
 ---
 
-Condition types:
-- { "type": "always" }
-- { "type": "field_empty", "field": "<source_column_name>" }
-- { "type": "field_matches", "field": "<source_column_name>", "pattern": "<regex>" }
-- { "type": "field_not_in", "field": "<source_column_name>", "values": ["val1", "val2"] }
-
-Action types:
-- { "type": "trim", "field": "<source_column_name>" }
-- { "type": "strip_html", "field": "<source_column_name>" }
-- { "type": "replace_map", "field": "<source_column_name>", "map": { "old_value": "new_value" } }
-- { "type": "normalize_price", "field": "<source_column_name>" }
-- { "type": "set_default", "field": "<source_column_name>", "value": "<default>" }
-- { "type": "replace", "field": "<source_column_name>", "find": "<text>", "replace": "<text>" }
-- { "type": "uppercase", "field": "<source_column_name>" }
-- { "type": "lowercase", "field": "<source_column_name>" }
-- { "type": "template", "field": "<target_column>", "template": "{OtherColumn} - {TargetColumn}" }
+${renderRuleCatalogForPrompt()}
 
 IMPORTANT: Use exact source column names from the data. Return ONLY the JSON object, no other text.`;
 
@@ -187,12 +173,26 @@ User instruction: "${instruction}"`;
     };
   }
 
+  const validation = validatePipelineRuleSpec(parsed.rule);
+  if (!validation.ok) {
+    return {
+      is_question: true,
+      explanation: "I could not turn that into a repeatable rule with the safe transformations I know how to run.",
+      rule: null,
+      affected_count: 0,
+      preview: [],
+      instruction,
+    };
+  }
+
+  const rule = validation.rule;
+
   // Generate row-level preview
-  const { affected_count, preview: fieldPreviews } = previewRule(rows, parsed.rule);
+  const { affected_count, preview: fieldPreviews } = previewRule(rows, rule);
 
   const preview = fieldPreviews.map((p, i) => ({
     row_index: i,
-    field: "field" in parsed.rule!.action ? (parsed.rule!.action as { field: string }).field : "",
+    field: "field" in rule.action ? (rule.action as { field: string }).field : "",
     before: p.before,
     after: p.after,
   }));
@@ -200,7 +200,7 @@ User instruction: "${instruction}"`;
   return {
     is_question: false,
     explanation: parsed.explanation,
-    rule: parsed.rule,
+    rule,
     affected_count,
     preview,
     instruction,

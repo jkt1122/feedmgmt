@@ -2,15 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CANONICAL_FIELDS } from "@/lib/canonical-fields";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { AlertCircle, RefreshCw, Trash2 } from "lucide-react";
-import { PipelinePanel } from "./pipeline-panel";
-import { FeedChat } from "./feed-chat";
+import { Trash2 } from "lucide-react";
 
 type DataSource = {
   id: string;
@@ -26,7 +23,6 @@ type Product = {
   id: string;
   row_index: number;
   data: Record<string, unknown>;
-  original_data?: Record<string, unknown>;
   dedup_status: string;
   validation_issues: { field: string; message: string }[];
 };
@@ -40,7 +36,6 @@ export function SourceView({
 }) {
   const utils = trpc.useUtils();
   const router = useRouter();
-  const [tab, setTab] = useState<"transformed" | "original">("transformed");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { data: fetchedProducts } = trpc.dataSource.getProducts.useQuery(
@@ -48,12 +43,6 @@ export function SourceView({
     { initialData: initialProducts }
   );
   const products = fetchedProducts ?? initialProducts;
-
-  const invalidateProducts = () => utils.dataSource.getProducts.invalidate({ sourceId: source.id });
-
-  const runPipeline = trpc.dataSource.runPipeline.useMutation({
-    onSuccess: invalidateProducts,
-  });
 
   const deleteSource = trpc.dataSource.delete.useMutation({
     onSuccess: async () => {
@@ -69,11 +58,7 @@ export function SourceView({
   const visibleCanonical = CANONICAL_FIELDS.filter((f) =>
     mappedFields.includes(f.key)
   );
-
-  const issueCount = products.reduce(
-    (n, p) => n + (p.validation_issues?.length ?? 0),
-    0
-  );
+  const rawColumns = Object.keys(products[0]?.data ?? {});
 
   return (
     <div className="flex flex-col h-full">
@@ -85,15 +70,6 @@ export function SourceView({
             <p className="text-sm text-muted-foreground mt-0.5">{source.original_filename}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              onClick={() => runPipeline.mutate({ id: source.id })}
-              disabled={runPipeline.isPending || source.pipeline_status === "running"}
-              variant="outline"
-              className="h-8 text-xs font-semibold gap-1.5"
-            >
-              <RefreshCw className={cn("w-3.5 h-3.5", runPipeline.isPending && "animate-spin")} />
-              {runPipeline.isPending ? "Running…" : "Re-run pipeline"}
-            </Button>
             <Badge
               className={cn(
                 "text-xs font-semibold",
@@ -105,7 +81,7 @@ export function SourceView({
               )}
               variant="outline"
             >
-              {source.pipeline_status}
+              {source.pipeline_status === "done" ? "imported" : source.pipeline_status}
             </Badge>
             {confirmDelete ? (
               <div className="flex items-center gap-1.5">
@@ -140,81 +116,23 @@ export function SourceView({
 
         {/* Stats row */}
         <div className="flex items-center gap-4 mt-3">
-          <Stat label="Products" value={products.length.toLocaleString()} />
+          <Stat label="Rows" value={products.length.toLocaleString()} />
+          <Stat label="Raw columns" value={rawColumns.length.toLocaleString()} />
           <Stat label="Fields mapped" value={`${mappedFields.length} / ${CANONICAL_FIELDS.length}`} />
-          {issueCount > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-warning">
-              <AlertCircle className="w-3.5 h-3.5" />
-              <span className="font-semibold">{issueCount} issues</span>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs
-        value={tab}
-        onValueChange={(v) => setTab(v as typeof tab)}
-        className="flex flex-col flex-1 min-h-0"
-      >
-        <div className="px-6 pt-3 pb-0 flex-shrink-0 border-b border-border">
-          <TabsList className="bg-transparent p-0 gap-0 h-auto">
-            <TabsTrigger
-              value="transformed"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-0 mr-6 pb-2.5 pt-0 font-semibold text-sm text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              Transformed
-            </TabsTrigger>
-            <TabsTrigger
-              value="original"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-0 pb-2.5 pt-0 font-semibold text-sm text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              Original
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value="transformed" className="flex-1 m-0 p-0 flex flex-col min-h-0 overflow-hidden">
-          <PipelinePanel
-            sourceId={source.id}
-            onRulesApplied={() => runPipeline.mutate({ id: source.id })}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {products.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <RawTable
+            products={products}
+            sourceMapping={source.column_mapping}
+            visibleCanonical={visibleCanonical}
           />
-          {products.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <ProductTable
-              products={products}
-              columns={visibleCanonical}
-              getCell={(p, col) => {
-                const sourceCol = source.column_mapping[col.key];
-                return sourceCol ? String(p.data[sourceCol] ?? "") : "";
-              }}
-              isTransformed={(p, col) => {
-                const sourceCol = source.column_mapping[col.key];
-                if (!sourceCol || !p.original_data) return false;
-                return String(p.data[sourceCol] ?? "") !== String((p.original_data as Record<string, unknown>)[sourceCol] ?? "");
-              }}
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="original" className="flex-1 overflow-auto m-0 p-0">
-          {products.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <OriginalTable
-              products={products}
-              sourceMapping={source.column_mapping}
-            />
-          )}
-        </TabsContent>
-      </Tabs>
-
-      <FeedChat
-        sourceId={source.id}
-        onDataChanged={invalidateProducts}
-        onRulesApplied={() => runPipeline.mutate({ id: source.id })}
-      />
+        )}
+      </div>
     </div>
   );
 }
@@ -233,95 +151,26 @@ function EmptyState() {
     <div className="flex flex-col items-center justify-center h-full text-center py-20">
       <p className="text-sm font-semibold text-foreground mb-1">No products yet</p>
       <p className="text-sm text-muted-foreground">
-        Products will appear here after the source pipeline runs.
+        Rows will appear here after the source file is imported.
       </p>
     </div>
   );
 }
 
-function ProductTable({
-  products,
-  columns,
-  getCell,
-  isTransformed,
-}: {
-  products: Product[];
-  columns: typeof CANONICAL_FIELDS;
-  getCell: (p: Product, col: (typeof CANONICAL_FIELDS)[number]) => string;
-  isTransformed?: (p: Product, col: (typeof CANONICAL_FIELDS)[number]) => boolean;
-}) {
-  return (
-    <div className="overflow-auto h-full">
-      <table className="min-w-full text-sm border-collapse">
-        <thead className="sticky top-0 bg-muted z-10">
-          <tr>
-            <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground border-b border-border w-10">
-              #
-            </th>
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground border-b border-border whitespace-nowrap"
-              >
-                {col.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {products.map((product) => {
-            const hasIssues = product.validation_issues?.length > 0;
-            return (
-              <tr
-                key={product.id}
-                className={cn(
-                  "border-b border-border hover:bg-accent transition-colors",
-                  hasIssues && "bg-destructive/10",
-                  product.dedup_status === "removed" && "opacity-50"
-                )}
-              >
-                <td className="px-3 py-2 text-xs font-data text-muted-foreground">
-                  {product.row_index + 1}
-                </td>
-                {columns.map((col) => {
-                  const val = getCell(product, col);
-                  const isDataField = ["id", "price", "sale_price", "gtin", "mpn"].includes(col.key);
-                  const transformed = isTransformed?.(product, col) ?? false;
-                  return (
-                    <td
-                      key={col.key}
-                      className={cn(
-                        "px-3 py-2 max-w-xs truncate",
-                        isDataField ? "font-data text-xs" : "text-sm",
-                        transformed ? "text-success bg-success/10" : "text-foreground"
-                      )}
-                      title={val}
-                    >
-                      {val || (
-                        <span className="text-muted-foreground/50 text-xs italic">—</span>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function OriginalTable({
+function RawTable({
   products,
   sourceMapping,
+  visibleCanonical,
 }: {
   products: Product[];
   sourceMapping: Record<string, string>;
+  visibleCanonical: typeof CANONICAL_FIELDS;
 }) {
-  // Get all unique source column names from the first product
   const sampleData = products[0]?.data ?? {};
   const columns = Object.keys(sampleData);
+  const mappedBySource = new Map(
+    visibleCanonical.map((field) => [sourceMapping[field.key], field.label])
+  );
 
   if (columns.length === 0) return <EmptyState />;
 
@@ -334,18 +183,20 @@ function OriginalTable({
               #
             </th>
             {columns.map((col) => {
-              const isMapped = Object.values(sourceMapping).includes(col);
+              const mappedLabel = mappedBySource.get(col);
               return (
                 <th
                   key={col}
                   className={cn(
                     "text-left px-3 py-2 text-xs font-semibold border-b border-border whitespace-nowrap",
-                    isMapped ? "text-muted-foreground" : "text-muted-foreground/50"
+                    mappedLabel ? "text-muted-foreground" : "text-muted-foreground/50"
                   )}
                 >
                   {col}
-                  {isMapped && (
-                    <span className="ml-1 text-primary/60">✓</span>
+                  {mappedLabel && (
+                    <span className="ml-1 text-primary/70 font-medium">
+                      {mappedLabel}
+                    </span>
                   )}
                 </th>
               );

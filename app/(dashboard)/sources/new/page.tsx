@@ -23,6 +23,7 @@ type Step = "upload" | "mapping" | "done";
 
 export default function NewSourcePage() {
   const router = useRouter();
+  const utils = trpc.useUtils();
   const supabase = createClient();
   const createSource = trpc.dataSource.create.useMutation();
   const updateMapping = trpc.dataSource.updateMapping.useMutation();
@@ -89,6 +90,7 @@ export default function NewSourcePage() {
       });
 
       setCreatedId(source.id);
+      await utils.dataSource.list.invalidate();
       setStep("mapping");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
@@ -101,6 +103,7 @@ export default function NewSourcePage() {
     if (!createdId) return;
     await updateMapping.mutateAsync({ id: createdId, columnMapping: mapping });
     await runPipeline.mutateAsync({ id: createdId });
+    await utils.dataSource.list.invalidate();
     setStep("done");
     setTimeout(() => router.push(`/sources/${createdId}`), 800);
   };

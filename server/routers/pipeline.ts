@@ -3,7 +3,7 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { analyzeDataForRules } from "@/lib/pipeline/analyze";
-import { PipelineRuleSpecSchema } from "@/lib/pipeline/rule-schema";
+import { validatePipelineRuleSpec } from "@/lib/pipeline/rule-catalog";
 import Papa from "papaparse";
 
 export const pipelineRouter = createTRPCRouter({
@@ -70,27 +70,27 @@ export const pipelineRouter = createTRPCRouter({
       const baseOrder = (existing?.[0]?.sort_order ?? -1) + 1;
 
       const rows = input.rules.map((rule, i) => {
-        const parsed = PipelineRuleSpecSchema.safeParse({
+        const parsed = validatePipelineRuleSpec({
           label: rule.label,
           plain_english: rule.plain_english,
           stage: rule.stage,
           condition: rule.condition,
           action: rule.action,
         });
-        if (!parsed.success) {
+        if (!parsed.ok) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: `Rule "${rule.label}" is invalid: ${parsed.error.issues[0]?.message ?? "unknown error"}`,
+            message: `Rule "${rule.label}" is invalid: ${parsed.reason}`,
           });
         }
         return {
           source_id: scopeId,
           merchant_id: ctx.user.id,
-          label: parsed.data.label,
-          plain_english: parsed.data.plain_english,
-          stage: parsed.data.stage,
-          conditions: parsed.data.condition,
-          actions: parsed.data.action,
+          label: parsed.rule.label,
+          plain_english: parsed.rule.plain_english,
+          stage: parsed.rule.stage,
+          conditions: parsed.rule.condition,
+          actions: parsed.rule.action,
           enabled: true,
           sort_order: baseOrder + i,
           origin: "ai_recommended",
