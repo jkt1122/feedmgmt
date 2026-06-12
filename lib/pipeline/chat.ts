@@ -186,7 +186,9 @@ User instruction: "${instruction}"`;
     }
   };
 
-  let { text, parsed } = await callModel();
+  const initial = await callModel();
+  const text = initial.text;
+  let parsed = initial.parsed;
 
   if (!parsed) {
     return {
