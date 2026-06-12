@@ -5,6 +5,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { runSyncPipeline } from "@/lib/pipeline/sync-runner";
 import { exportGoogleTSV, exportMetaCSV, getExportFilename } from "@/lib/pipeline/export";
 import { getPlatformDefaultRules } from "@/lib/pipeline/platform-defaults";
+import { getPlatformDefaultRuleSpec, validatePipelineRuleSpec } from "@/lib/pipeline/rule-catalog";
+import { fingerprintRule } from "@/lib/pipeline/proposals";
 
 const FilterRuleSchema = z.object({
   field: z.string().min(1),
@@ -321,15 +323,23 @@ export const syncRouter = createTRPCRouter({
 
       let nextOrder = ((existing?.[0]?.sort_order as number) ?? 0) + 1;
 
-      const inserts = toAccept.map((rule) => ({
+      const specs = toAccept.map((rule) => getPlatformDefaultRuleSpec(rule.id));
+      if (specs.some((rule) => rule === null)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "One or more platform recommendations are not in the rule catalog.",
+        });
+      }
+
+      const inserts = specs.map((rule) => ({
         merchant_id: ctx.user.id,
         sync_id: input.syncId,
         source_id: null,
-        label: rule.label,
-        plain_english: rule.plain_english,
-        stage: rule.stage,
-        conditions: buildConditionForDefault(rule.id),
-        actions: buildActionForDefault(rule.id),
+        label: rule!.label,
+        plain_english: rule!.plain_english,
+        stage: rule!.stage,
+        conditions: rule!.condition,
+        actions: rule!.action,
         enabled: true,
         sort_order: nextOrder++,
         origin: "platform_spec",
@@ -337,6 +347,22 @@ export const syncRouter = createTRPCRouter({
 
       const { error } = await ctx.supabase.from("pipeline_rules").insert(inserts);
       if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+
+      for (const rule of specs) {
+        await ctx.supabase.from("rule_memories").upsert(
+          {
+            merchant_id: ctx.user.id,
+            sync_id: input.syncId,
+            platform: sync.platform,
+            scope: "sync",
+            decision: "accepted",
+            fingerprint: fingerprintRule(rule!),
+            origin: "platform_spec",
+            rule_spec: rule,
+          },
+          { onConflict: "merchant_id,sync_id,fingerprint,decision" }
+        );
+      }
 
       // Mark recommendations as seen so the panel doesn't re-appear
       await ctx.supabase
@@ -448,6 +474,17 @@ export const syncRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const validation = validatePipelineRuleSpec({
+        label: input.label,
+        plain_english: input.plain_english,
+        stage: input.stage,
+        condition: input.conditions,
+        action: input.actions,
+      });
+      if (!validation.ok) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: `Invalid rule: ${validation.reason}` });
+      }
+
       const { data: existing } = await ctx.supabase
         .from("pipeline_rules")
         .select("sort_order")
@@ -464,11 +501,11 @@ export const syncRouter = createTRPCRouter({
           merchant_id: ctx.user.id,
           sync_id: input.syncId,
           source_id: null,
-          label: input.label,
-          plain_english: input.plain_english,
-          stage: input.stage,
-          conditions: input.conditions,
-          actions: input.actions,
+          label: validation.rule.label,
+          plain_english: validation.rule.plain_english,
+          stage: validation.rule.stage,
+          conditions: validation.rule.condition,
+          actions: validation.rule.action,
           enabled: true,
           sort_order: nextOrder,
         })
@@ -524,69 +561,3 @@ export const syncRouter = createTRPCRouter({
       return { content, filename: getExportFilename(sync.name, sync.platform), rowCount: rows.length };
     }),
 });
-
-// ── Helpers: map platform default rule IDs to rule-engine condition/action specs ──
-
-function buildConditionForDefault(ruleId: string): Record<string, unknown> {
-  // Validation rules: only flag when a specific condition is met
-  if (ruleId.includes("flag_missing_brand")) return { type: "field_empty", field: "brand" };
-  if (ruleId.includes("flag_missing_gtin")) return { type: "field_empty", field: "gtin" };
-  if (ruleId.includes("flag_missing_image")) return { type: "field_empty", field: "image_link" };
-  // All other rules (normalize, truncate): always apply
-  return { type: "always" };
-}
-
-function buildActionForDefault(ruleId: string): Record<string, unknown> {
-  // Google availability normalization
-  if (ruleId === "google_normalize_availability") {
-    return { type: "replace_map", field: "availability", map: {
-      "yes": "in_stock", "1": "in_stock", "true": "in_stock", "available": "in_stock",
-      "in stock": "in_stock", "in-stock": "in_stock",
-      "no": "out_of_stock", "0": "out_of_stock", "false": "out_of_stock",
-      "out of stock": "out_of_stock", "out-of-stock": "out_of_stock",
-      "pre-order": "preorder", "pre_order": "preorder",
-    }};
-  }
-  if (ruleId === "meta_normalize_availability") {
-    return { type: "replace_map", field: "availability", map: {
-      "in_stock": "in stock", "yes": "in stock", "1": "in stock",
-      "out_of_stock": "out of stock", "no": "out of stock", "0": "out of stock",
-      "preorder": "preorder", "pre-order": "preorder",
-    }};
-  }
-  if (ruleId === "google_normalize_condition") {
-    return { type: "replace_map", field: "condition", map: {
-      "NEW": "new", "New": "new", "USED": "used", "Used": "used",
-      "like new": "used", "REFURBISHED": "refurbished", "Refurbished": "refurbished",
-    }};
-  }
-  if (ruleId === "meta_normalize_condition") {
-    return { type: "replace_map", field: "condition", map: {
-      "NEW": "new", "New": "new", "USED": "used", "Used": "used",
-      "like new": "used_like_new", "REFURBISHED": "refurbished", "Refurbished": "refurbished",
-    }};
-  }
-  // Flag actions
-  if (ruleId.includes("flag_missing_brand")) {
-    return { type: "flag_issue", field: "brand", message: "Brand is missing" };
-  }
-  if (ruleId.includes("flag_missing_gtin")) {
-    return { type: "flag_issue", field: "gtin", message: "GTIN missing for branded product" };
-  }
-  if (ruleId.includes("flag_missing_image")) {
-    return { type: "flag_issue", field: "image_link", message: "Missing image URL" };
-  }
-  if (ruleId.includes("flag_short_description")) {
-    return { type: "flag_issue", field: "description", message: "Description too short for Google Shopping" };
-  }
-  // Truncate title (google and meta)
-  if (ruleId.includes("truncate_title")) {
-    return { type: "truncate", field: "title", max_length: 150 };
-  }
-  // Meta: truncate description
-  if (ruleId.includes("truncate_description")) {
-    return { type: "truncate", field: "description", max_length: 9999 };
-  }
-  // Fallback — no-op
-  return { type: "trim", field: "title" };
-}
