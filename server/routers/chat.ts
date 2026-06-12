@@ -3,7 +3,6 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { processChatInstruction } from "@/lib/pipeline/chat";
-import { runPipelineTransform } from "@/lib/pipeline/runner";
 import { runSyncPipeline } from "@/lib/pipeline/sync-runner";
 import { runSyncAudit } from "@/lib/pipeline/audit";
 import { PipelineRuleSpecSchema } from "@/lib/pipeline/rule-schema";
@@ -49,189 +48,9 @@ export const chatRouter = createTRPCRouter({
       return data ?? [];
     }),
 
-  sendMessage: protectedProcedure
-    .input(z.object({
-      sessionId: z.string().uuid(),
-      sourceId: z.string().uuid(),
-      message: z.string().min(1),
-    }))
-    .mutation(async ({ ctx, input }) => {
-      const service = createServiceClient();
-
-      // Save user message
-      await ctx.supabase.from("chat_messages").insert({
-        session_id: input.sessionId,
-        role: "user",
-        content: input.message,
-      });
-
-      // Load source + sample products
-      const { data: source } = await ctx.supabase
-        .from("data_sources")
-        .select("*")
-        .eq("id", input.sourceId)
-        .eq("merchant_id", ctx.user.id)
-        .single();
-
-      if (!source) throw new TRPCError({ code: "NOT_FOUND" });
-
-      const { data: products } = await service
-        .from("canonical_products")
-        .select("*")
-        .eq("source_id", input.sourceId)
-        .eq("dedup_status", "kept")
-        .limit(200);
-
-      // Load message history for context (last 10 exchanges = 20 messages)
-      const { data: history } = await ctx.supabase
-        .from("chat_messages")
-        .select("role, content")
-        .eq("session_id", input.sessionId)
-        .order("created_at", { ascending: true })
-        .limit(20);
-
-      const result = await processChatInstruction({
-        instruction: input.message,
-        source,
-        products: products ?? [],
-        history: (history ?? []).slice(0, -1), // exclude the message we just saved
-      });
-
-      // Save assistant response — include rule JSON in content so history retains full context
-      const assistantContent = result.is_question || !result.rule
-        ? result.explanation
-        : `${result.explanation}\n\n[Proposed rule: ${JSON.stringify(result.rule)}]`;
-
-      const { data: assistantMsg } = await ctx.supabase
-        .from("chat_messages")
-        .insert({
-          session_id: input.sessionId,
-          role: "assistant",
-          content: assistantContent,
-          payload: result,
-        })
-        .select()
-        .single();
-
-      return assistantMsg;
-    }),
-
-  applyOperation: protectedProcedure
-    .input(z.object({
-      sessionId: z.string().uuid(),
-      messageId: z.string().uuid(),
-      sourceId: z.string().uuid(),
-      saveAsRule: z.boolean().default(false),
-      saveAsGlobalRule: z.boolean().default(false),
-    }))
-    .mutation(async ({ ctx, input }) => {
-      const service = createServiceClient();
-
-      // Get the assistant message with the payload
-      const { data: msg } = await ctx.supabase
-        .from("chat_messages")
-        .select("*")
-        .eq("id", input.messageId)
-        .single();
-
-      if (!msg?.payload) throw new TRPCError({ code: "NOT_FOUND" });
-
-      const payload = msg.payload as {
-        rule: Record<string, unknown>;
-        affected_count: number;
-        instruction: string;
-      };
-
-      if (!payload.rule) throw new TRPCError({ code: "BAD_REQUEST", message: "No rule in payload" });
-
-      // Validate rule shape before doing anything with it
-      const ruleValidation = validatePipelineRuleSpec(payload.rule);
-      if (!ruleValidation.ok) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Invalid rule: ${ruleValidation.reason}`,
-        });
-      }
-      const validatedRule = ruleValidation.rule;
-
-      // Save as pipeline rule if requested (source or global scope)
-      let ruleId: string | null = null;
-      if (input.saveAsRule || input.saveAsGlobalRule) {
-        const { data: savedRule } = await ctx.supabase
-          .from("pipeline_rules")
-          .insert({
-            source_id: input.saveAsGlobalRule ? null : input.sourceId,
-            merchant_id: ctx.user.id,
-            label: validatedRule.label,
-            plain_english: validatedRule.plain_english,
-            stage: validatedRule.stage,
-            conditions: validatedRule.condition,
-            actions: validatedRule.action,
-            enabled: true,
-            sort_order: 999,
-            origin: "chat",
-          })
-          .select()
-          .single();
-        ruleId = savedRule?.id ?? null;
-      }
-
-      // Log batch operation
-      await ctx.supabase.from("batch_operations").insert({
-        merchant_id: ctx.user.id,
-        context_type: "source",
-        context_id: input.sourceId,
-        instruction: payload.instruction,
-        affected_count: payload.affected_count,
-        status: "applied",
-        rule_id: ruleId,
-        applied_at: new Date().toISOString(),
-      });
-
-      // Re-run pipeline to apply
-      const { data: source } = await ctx.supabase
-        .from("data_sources")
-        .select("*")
-        .eq("id", input.sourceId)
-        .eq("merchant_id", ctx.user.id)
-        .single();
-
-      if (!source) throw new TRPCError({ code: "NOT_FOUND" });
-
-      // Sources stay raw. Re-import the file without applying transformation rules.
-      const { rawRows, rows, validationIssuesByRow } = await runPipelineTransform({
-        serviceClient: service,
-        source: {
-          id: input.sourceId,
-          storage_path: source.storage_path,
-          column_mapping: source.column_mapping ?? {},
-          merchant_id: ctx.user.id,
-          disabled_default_rules: source.disabled_default_rules ?? [],
-        },
-      });
-
-      await service.from("canonical_products").delete().eq("source_id", input.sourceId);
-
-      const BATCH = 500;
-      for (let i = 0; i < rows.length; i += BATCH) {
-        const batch = rows.slice(i, i + BATCH).map((row, offset) => ({
-          source_id: input.sourceId,
-          merchant_id: ctx.user.id,
-          row_index: i + offset,
-          data: row,
-          original_data: rawRows[i + offset],
-          dedup_status: "kept",
-          validation_issues: validationIssuesByRow.get(i + offset) ?? [],
-        }));
-        await service.from("canonical_products").insert(batch);
-      }
-
-      await service.from("data_sources")
-        .update({ pipeline_status: "done", pipeline_last_run_at: new Date().toISOString() })
-        .eq("id", input.sourceId);
-
-      return { success: true, ruleId };
-    }),
+  // Source-level chat (sendMessage / applyOperation) was removed: sources are
+  // raw, read-only uploads — all transformation lives at the sync level.
+  // See DESIGN_BRIEF_feed_assistant.md §2.
 
   sendSyncMessage: protectedProcedure
     .input(z.object({
@@ -242,11 +61,15 @@ export const chatRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const service = createServiceClient();
 
-      await ctx.supabase.from("chat_messages").insert({
-        session_id: input.sessionId,
-        role: "user",
-        content: input.message,
-      });
+      const { data: savedUserMsg } = await ctx.supabase
+        .from("chat_messages")
+        .insert({
+          session_id: input.sessionId,
+          role: "user",
+          content: input.message,
+        })
+        .select("id")
+        .single();
 
       const { data: sync } = await ctx.supabase
         .from("platform_syncs")
@@ -276,12 +99,32 @@ export const chatRouter = createTRPCRouter({
         original_data: row,
       }));
 
-      const { data: history } = await ctx.supabase
+      const { data: recentHistory } = await ctx.supabase
         .from("chat_messages")
-        .select("role, content")
+        .select("id, role, content")
         .eq("session_id", input.sessionId)
-        .order("created_at", { ascending: true })
+        .order("created_at", { ascending: false })
         .limit(20);
+
+      const history = (recentHistory ?? [])
+        .filter((m) => m.id !== savedUserMsg?.id)
+        .reverse()
+        .map((m) => ({ role: m.role, content: m.content }));
+
+      // Past accept/reject decisions for this sync, so the model proposes
+      // with awareness of what the merchant already approved or turned down
+      const { data: memories } = await ctx.supabase
+        .from("rule_memories")
+        .select("decision, rule_spec")
+        .eq("merchant_id", ctx.user.id)
+        .eq("sync_id", input.syncId);
+
+      const ruleMemories = (memories ?? []).map((m) => ({
+        decision: m.decision as "accepted" | "rejected",
+        label: (m.rule_spec as { plain_english?: string; label?: string })?.plain_english
+          ?? (m.rule_spec as { label?: string })?.label
+          ?? "unknown rule",
+      }));
 
       const platformLabel = sync.platform === "google_shopping" ? "Google Shopping" : "Meta Catalog";
 
@@ -294,17 +137,20 @@ export const chatRouter = createTRPCRouter({
         instruction: input.message,
         source: fakeSource,
         products: sampleProducts,
-        history: (history ?? []).slice(0, -1),
+        history,
+        ruleMemories,
       });
 
       if (chatResult.rule && !chatResult.is_question) {
         const fingerprint = fingerprintRule(chatResult.rule);
+        // Latest decision wins if both an accept and a reject row exist
         const { data: memory } = await ctx.supabase
           .from("rule_memories")
           .select("decision")
           .eq("merchant_id", ctx.user.id)
           .eq("sync_id", input.syncId)
           .eq("fingerprint", fingerprint)
+          .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
@@ -371,6 +217,15 @@ export const chatRouter = createTRPCRouter({
         .single();
 
       if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+      const auditFingerprint = fingerprintRule(input.rule);
+      // A new accept supersedes any earlier reject of the same rule
+      await ctx.supabase
+        .from("rule_memories")
+        .delete()
+        .eq("merchant_id", ctx.user.id)
+        .eq("sync_id", input.syncId)
+        .eq("fingerprint", auditFingerprint)
+        .eq("decision", "rejected");
       await ctx.supabase.from("rule_memories").upsert(
         {
           merchant_id: ctx.user.id,
@@ -378,7 +233,7 @@ export const chatRouter = createTRPCRouter({
           platform: sync.platform,
           scope: "sync",
           decision: "accepted",
-          fingerprint: fingerprintRule(input.rule),
+          fingerprint: auditFingerprint,
           origin: "agent_reasoned",
           rule_spec: input.rule,
         },
@@ -441,13 +296,25 @@ export const chatRouter = createTRPCRouter({
         columnMapping,
       });
 
-      // Save as assistant message with audit_report payload type
+      // Save as assistant message with audit_report payload type.
+      // Findings are serialized into content so later chat turns (which only
+      // see role/content history) retain what was found and recommended.
+      const findingsText = report.findings
+        .map((f) => {
+          const rule = f.suggested_rule ? ` (suggested rule: ${f.suggested_rule.label})` : "";
+          return `- [${f.tier}] ${f.field}: ${f.message} (${f.affected_count} affected)${rule}`;
+        })
+        .join("\n");
+      const auditContent = findingsText
+        ? `${report.summary}\n\nFindings:\n${findingsText}`
+        : report.summary;
+
       const { data: assistantMsg } = await ctx.supabase
         .from("chat_messages")
         .insert({
           session_id: input.sessionId,
           role: "assistant",
-          content: report.summary,
+          content: auditContent,
           payload: { type: "audit_report", ...report },
         })
         .select()
@@ -511,6 +378,15 @@ export const chatRouter = createTRPCRouter({
           .single();
         ruleId = savedRule?.id ?? null;
 
+        const acceptFingerprint = fingerprintRule(validatedRule);
+        // A new accept supersedes any earlier reject of the same rule
+        await ctx.supabase
+          .from("rule_memories")
+          .delete()
+          .eq("merchant_id", ctx.user.id)
+          .eq("sync_id", input.syncId)
+          .eq("fingerprint", acceptFingerprint)
+          .eq("decision", "rejected");
         await ctx.supabase.from("rule_memories").upsert(
           {
             merchant_id: ctx.user.id,
@@ -518,7 +394,7 @@ export const chatRouter = createTRPCRouter({
             platform: sync.platform,
             scope: "sync",
             decision: "accepted",
-            fingerprint: fingerprintRule(validatedRule),
+            fingerprint: acceptFingerprint,
             origin: "user_request",
             rule_spec: validatedRule,
           },
@@ -571,6 +447,15 @@ export const chatRouter = createTRPCRouter({
 
       if (!sync) throw new TRPCError({ code: "NOT_FOUND" });
 
+      const rejectFingerprint = fingerprintRule(validation.rule);
+      // A new reject supersedes any earlier accept of the same rule
+      await ctx.supabase
+        .from("rule_memories")
+        .delete()
+        .eq("merchant_id", ctx.user.id)
+        .eq("sync_id", input.syncId)
+        .eq("fingerprint", rejectFingerprint)
+        .eq("decision", "accepted");
       await ctx.supabase.from("rule_memories").upsert(
         {
           merchant_id: ctx.user.id,
@@ -578,7 +463,7 @@ export const chatRouter = createTRPCRouter({
           platform: sync.platform,
           scope: "sync",
           decision: "rejected",
-          fingerprint: fingerprintRule(validation.rule),
+          fingerprint: rejectFingerprint,
           origin: "user_request",
           rule_spec: validation.rule,
         },

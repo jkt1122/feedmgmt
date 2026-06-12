@@ -13,20 +13,32 @@ export function applyRule(
 export function applyRules(
   rows: Record<string, string>[],
   specs: PipelineRuleSpec[]
-): { rows: Record<string, string>[]; matchCounts: number[] } {
+): {
+  rows: Record<string, string>[];
+  matchCounts: number[];
+  issuesByRow: Map<number, { field: string; message: string }[]>;
+} {
   const matchCounts = specs.map(() => 0);
+  const issuesByRow = new Map<number, { field: string; message: string }[]>();
 
-  const result = rows.map((row) => {
+  const result = rows.map((row, rowIndex) => {
     let current = { ...row };
     specs.forEach((spec, i) => {
       const { row: next, matched } = applyRule(current, spec);
       current = next;
-      if (matched) matchCounts[i]++;
+      if (matched) {
+        matchCounts[i]++;
+        if (spec.action.type === "flag_issue") {
+          const existing = issuesByRow.get(rowIndex) ?? [];
+          existing.push({ field: spec.action.field, message: spec.action.message });
+          issuesByRow.set(rowIndex, existing);
+        }
+      }
     });
     return current;
   });
 
-  return { rows: result, matchCounts };
+  return { rows: result, matchCounts, issuesByRow };
 }
 
 function matchesCondition(
@@ -83,6 +95,9 @@ function applyAction(
       if (!r[action.field] || r[action.field].trim() === "") {
         r[action.field] = action.value;
       }
+      break;
+    case "set_value":
+      r[action.field] = action.value;
       break;
     case "prefix":
       r[action.field] = action.value + (r[action.field] ?? "");

@@ -46,6 +46,18 @@ export function fingerprintRule(rule: PipelineRuleSpec): string {
     .digest("hex");
 }
 
+export function preferenceKeyForRule(rule: PipelineRuleSpec): string {
+  const conditionField = "field" in rule.condition ? rule.condition.field : "any";
+  const actionField = "field" in rule.action ? rule.action.field : "any";
+  return [
+    rule.stage,
+    rule.condition.type,
+    conditionField,
+    rule.action.type,
+    actionField,
+  ].join(":");
+}
+
 export function dryRunRule(
   rows: Record<string, string>[],
   rule: PipelineRuleSpec,

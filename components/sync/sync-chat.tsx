@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ChatResult } from "@/lib/pipeline/chat";
 import type { AuditReport, AuditFinding } from "@/lib/pipeline/audit";
+import type { PipelineRuleSpec } from "@/lib/pipeline/rule-schema";
 
 type AuditPayload = AuditReport & { type: "audit_report" };
 
@@ -27,13 +28,7 @@ type RuleProposal = {
   fingerprint: string;
   origin: "basic_fix" | "platform_spec" | "agent_reasoned" | "user_request";
   scope: "sync";
-  rule: {
-    label: string;
-    plain_english: string;
-    stage: "format" | "quality" | "validation";
-    condition: unknown;
-    action: unknown;
-  };
+  rule: PipelineRuleSpec;
   dry_run: {
     affected_count: number;
     examples: { row_index: number; field: string; before: string; after: string }[];
@@ -81,6 +76,10 @@ export function SyncChat({
   const [rerunning, setRerunning] = useState(false);
   const [reviewFeedback, setReviewFeedback] = useState<string | null>(null);
   const [reviewFeedbackFading, setReviewFeedbackFading] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [revisedRecommendation, setRevisedRecommendation] = useState<RuleProposal | null>(null);
 
   const platformLabel = platform === "google_shopping" ? "Google Shopping" : "Meta Catalog";
   const utils = trpc.useUtils();
@@ -121,7 +120,13 @@ export function SyncChat({
 
   const acceptRule = trpc.proposals.accept.useMutation({
     onSuccess: () => {
-      showReviewFeedback("Fixed. This will be applied on future resyncs and can be changed under Manage optimizations.");
+      showReviewFeedback(
+        "Fixed. This will be applied on future resyncs and can be changed under Manage optimizations.",
+        () => setRevisedRecommendation(null)
+      );
+      setFeedbackOpen(false);
+      setFeedbackText("");
+      setFeedbackMessage(null);
       setRerunning(true);
       runSync.mutate({ id: syncId });
     },
@@ -129,10 +134,37 @@ export function SyncChat({
 
   const rejectRule = trpc.proposals.reject.useMutation({
     onSuccess: () => {
+      setFeedbackOpen(false);
+      setFeedbackText("");
+      setFeedbackMessage(null);
+      setRevisedRecommendation(null);
       showReviewFeedback(
         "Rejected for this sync. You can change it later under Manage optimizations.",
         () => utils.proposals.list.invalidate({ syncId })
       );
+    },
+  });
+
+  const sendFeedback = trpc.proposals.feedback.useMutation({
+    onSuccess: (result) => {
+      if (result.type === "updated_proposal") {
+        setRevisedRecommendation(result.proposal as RuleProposal);
+        setFeedbackOpen(false);
+        setFeedbackText("");
+        setFeedbackMessage(result.message);
+        return;
+      }
+
+      if (result.type === "suppress_similar") {
+        setFeedbackOpen(false);
+        setFeedbackText("");
+        setFeedbackMessage(null);
+        setRevisedRecommendation(null);
+        showReviewFeedback(result.message, () => utils.proposals.list.invalidate({ syncId }));
+        return;
+      }
+
+      setFeedbackMessage(result.message);
     },
   });
 
@@ -221,9 +253,10 @@ export function SyncChat({
     }
   };
 
-  const currentRecommendation = recommendations[0] ?? null;
+  const currentRecommendation = revisedRecommendation ?? recommendations[0] ?? null;
   const isReviewingRecommendations = recState === "pending" && recommendations.length > 0;
   const showReviewIntro = isReviewingRecommendations && !reviewIntroSeen && !reviewFeedback;
+  const isWorkingRecommendation = acceptRule.isPending || rejectRule.isPending || rerunning || sendFeedback.isPending || Boolean(reviewFeedback);
 
   const handleAcceptRecommendation = () => {
     if (!currentRecommendation) return;
@@ -242,6 +275,20 @@ export function SyncChat({
       proposalId: currentRecommendation.id,
       origin: currentRecommendation.origin,
       rule: currentRecommendation.rule,
+    });
+  };
+
+  const handleFeedbackSubmit = () => {
+    const feedback = feedbackText.trim();
+    if (!currentRecommendation || !feedback) return;
+    setFeedbackMessage(null);
+    sendFeedback.mutate({
+      syncId,
+      proposalId: currentRecommendation.id,
+      origin: currentRecommendation.origin,
+      rule: currentRecommendation.rule,
+      feedback,
+      examples: currentRecommendation.dry_run.examples,
     });
   };
 
@@ -318,7 +365,7 @@ export function SyncChat({
                       <div className="rounded-lg border border-border bg-card px-3 py-2">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            Next recommendation
+                            {revisedRecommendation ? "Updated recommendation" : "Next recommendation"}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {recommendations.length} remaining
@@ -330,6 +377,11 @@ export function SyncChat({
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">{currentRecommendation.rule.plain_english}</div>
                         <ProposalExamples proposal={currentRecommendation} />
+                      </div>
+                    )}
+                    {feedbackMessage && !reviewFeedback && (
+                      <div className="mt-2 rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
+                        {feedbackMessage}
                       </div>
                     )}
                   </div>
@@ -481,6 +533,43 @@ export function SyncChat({
                   >
                     Continue
                   </Button>
+                ) : feedbackOpen ? (
+                  <>
+                    <Input
+                      value={feedbackText}
+                      onChange={(e) => setFeedbackText(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleFeedbackSubmit()}
+                      placeholder="Tell the assistant what to change about this recommendation"
+                      className="flex-1"
+                      disabled={sendFeedback.isPending}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="lg"
+                      onClick={() => {
+                        setFeedbackOpen(false);
+                        setFeedbackText("");
+                        setFeedbackMessage(null);
+                      }}
+                      disabled={sendFeedback.isPending}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      size="lg"
+                      onClick={handleFeedbackSubmit}
+                      disabled={!feedbackText.trim() || sendFeedback.isPending}
+                    >
+                      {sendFeedback.isPending ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Send className="w-3 h-3" />
+                      )}
+                      Send
+                    </Button>
+                  </>
                 ) : (
                   <>
                     <Button
@@ -488,15 +577,27 @@ export function SyncChat({
                       variant="ghost"
                       size="lg"
                       onClick={handleRejectRecommendation}
-                      disabled={acceptRule.isPending || rejectRule.isPending || rerunning || Boolean(reviewFeedback)}
+                      disabled={isWorkingRecommendation}
                     >
                       {rejectRule.isPending ? "Rejecting…" : "Reject"}
                     </Button>
                     <Button
                       type="button"
+                      variant="outline"
+                      size="lg"
+                      onClick={() => {
+                        setFeedbackOpen(true);
+                        setFeedbackMessage(null);
+                      }}
+                      disabled={isWorkingRecommendation}
+                    >
+                      Give feedback
+                    </Button>
+                    <Button
+                      type="button"
                       size="lg"
                       onClick={handleAcceptRecommendation}
-                      disabled={acceptRule.isPending || rejectRule.isPending || rerunning || Boolean(reviewFeedback)}
+                      disabled={isWorkingRecommendation}
                     >
                       <Check className="w-3 h-3" />
                       {acceptRule.isPending || rerunning ? "Applying…" : "Accept"}
@@ -595,6 +696,10 @@ function AuditReportMessage({
   const [savedRuleIds, setSavedRuleIds] = useState<Set<number>>(new Set());
   const [rejectedRuleIds, setRejectedRuleIds] = useState<Set<number>>(new Set());
   const [savingIdx, setSavingIdx] = useState<number | null>(null);
+  const [feedbackIdx, setFeedbackIdx] = useState<number | null>(null);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [revisedAuditProposal, setRevisedAuditProposal] = useState<RuleProposal | null>(null);
 
   const saveAuditRule = trpc.chat.saveAuditRule.useMutation({
     onSuccess: () => {
@@ -602,6 +707,28 @@ function AuditReportMessage({
     },
   });
   const rejectAuditRule = trpc.proposals.reject.useMutation();
+  const sendAuditFeedback = trpc.proposals.feedback.useMutation({
+    onSuccess: (result) => {
+      if (result.type === "updated_proposal") {
+        setRevisedAuditProposal(result.proposal as RuleProposal);
+        setFeedbackIdx(null);
+        setFeedbackText("");
+        setFeedbackMessage(result.message);
+        return;
+      }
+
+      if (result.type === "suppress_similar" && currentAction) {
+        setRevisedAuditProposal(null);
+        setFeedbackIdx(null);
+        setFeedbackText("");
+        setFeedbackMessage(null);
+        setRejectedRuleIds((s) => new Set(s).add(currentAction.idx));
+        return;
+      }
+
+      setFeedbackMessage(result.message);
+    },
+  });
 
   const tierIcon = (tier: AuditFinding["tier"]) => {
     if (tier === "ok") return <span className="text-success font-bold text-sm">✓</span>;
@@ -649,6 +776,29 @@ function AuditReportMessage({
     );
   };
 
+  const currentRule = revisedAuditProposal?.rule ?? currentAction?.finding.suggested_rule ?? null;
+  const currentExamples = revisedAuditProposal?.dry_run.examples ?? currentAction?.finding.dry_run?.examples ?? [];
+  const currentField =
+    revisedAuditProposal && "field" in revisedAuditProposal.rule.action
+      ? revisedAuditProposal.rule.action.field
+      : currentAction?.finding.field ?? "";
+  const currentAffectedCount = revisedAuditProposal?.dry_run.affected_count ?? currentAction?.finding.affected_count ?? 0;
+  const currentMessage = revisedAuditProposal?.rule.plain_english ?? currentAction?.finding.message ?? "";
+
+  const submitAuditFeedback = () => {
+    const feedback = feedbackText.trim();
+    if (!currentAction || !currentRule || !feedback) return;
+    setFeedbackMessage(null);
+    sendAuditFeedback.mutate({
+      syncId,
+      proposalId: `audit-${currentAction.idx}`,
+      origin: revisedAuditProposal?.origin ?? "agent_reasoned",
+      rule: currentRule,
+      feedback,
+      examples: currentExamples,
+    });
+  };
+
   return (
     <div className="flex flex-col gap-1.5 max-w-[92%]">
       <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Feed Assistant</div>
@@ -682,7 +832,7 @@ function AuditReportMessage({
               <div className="px-3 py-2">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Next recommendation
+                    {revisedAuditProposal ? "Updated recommendation" : "Next recommendation"}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {remainingActionCount} remaining
@@ -691,62 +841,127 @@ function AuditReportMessage({
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="w-5 flex-shrink-0 flex justify-center">{tierIcon(currentAction.finding.tier)}</span>
                   <span className="text-xs font-mono text-muted-foreground bg-background border border-border rounded px-1.5 py-0.5">
-                    {currentAction.finding.field}
+                    {currentField}
                   </span>
-                  {currentAction.finding.affected_count > 0 && (
+                  {currentAffectedCount > 0 && (
                     <span className="text-xs text-muted-foreground">
-                      {currentAction.finding.affected_count} {currentAction.finding.affected_count === 1 ? "product" : "products"}
+                      {currentAffectedCount} {currentAffectedCount === 1 ? "product" : "products"}
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-foreground mt-1 leading-relaxed">
-                  {currentAction.finding.message}
+                  {currentMessage}
                 </p>
-                {renderExamples(currentAction.finding, currentAction.idx)}
+                {revisedAuditProposal ? (
+                  <ProposalExamples proposal={revisedAuditProposal} />
+                ) : (
+                  renderExamples(currentAction.finding, currentAction.idx)
+                )}
+                {feedbackMessage && (
+                  <div className="mt-2 rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-muted-foreground">
+                    {feedbackMessage}
+                  </div>
+                )}
               </div>
               <div className="px-3 py-2.5 border-t border-border bg-background flex items-center justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={savingIdx === currentAction.idx || saveAuditRule.isPending || rejectAuditRule.isPending}
-                  onClick={() =>
-                    rejectAuditRule.mutate(
-                      {
-                        syncId,
-                        proposalId: `audit-${currentAction.idx}`,
-                        origin: "agent_reasoned",
-                        rule: currentAction.finding.suggested_rule!,
-                      },
-                      {
-                        onSuccess: () => setRejectedRuleIds((s) => new Set(s).add(currentAction.idx)),
+                {feedbackIdx === currentAction.idx ? (
+                  <>
+                    <Input
+                      value={feedbackText}
+                      onChange={(e) => setFeedbackText(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submitAuditFeedback()}
+                      placeholder="Tell the assistant what to change"
+                      className="h-7 flex-1 text-xs"
+                      disabled={sendAuditFeedback.isPending}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={sendAuditFeedback.isPending}
+                      onClick={() => {
+                        setFeedbackIdx(null);
+                        setFeedbackText("");
+                        setFeedbackMessage(null);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={!feedbackText.trim() || sendAuditFeedback.isPending}
+                      onClick={submitAuditFeedback}
+                    >
+                      {sendAuditFeedback.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                      Send
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={savingIdx === currentAction.idx || saveAuditRule.isPending || rejectAuditRule.isPending || sendAuditFeedback.isPending}
+                      onClick={() =>
+                        rejectAuditRule.mutate(
+                          {
+                            syncId,
+                            proposalId: `audit-${currentAction.idx}`,
+                            origin: revisedAuditProposal?.origin ?? "agent_reasoned",
+                            rule: currentRule!,
+                          },
+                          {
+                            onSuccess: () => {
+                              setRejectedRuleIds((s) => new Set(s).add(currentAction.idx));
+                              setRevisedAuditProposal(null);
+                              setFeedbackMessage(null);
+                            },
+                          }
+                        )
                       }
-                    )
-                  }
-                >
-                  {rejectAuditRule.isPending ? "Rejecting…" : "Reject"}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={savingIdx === currentAction.idx || saveAuditRule.isPending || rejectAuditRule.isPending}
-                  onClick={() => {
-                    setSavingIdx(currentAction.idx);
-                    saveAuditRule.mutate(
-                      { syncId, rule: currentAction.finding.suggested_rule! },
-                      {
-                        onSuccess: () => {
-                          setSavedRuleIds((s) => new Set(s).add(currentAction.idx));
-                          setSavingIdx(null);
-                        },
-                        onError: () => setSavingIdx(null),
-                      }
-                    );
-                  }}
-                >
-                  {savingIdx === currentAction.idx ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                  Accept
-                </Button>
+                    >
+                      {rejectAuditRule.isPending ? "Rejecting…" : "Reject"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={savingIdx === currentAction.idx || saveAuditRule.isPending || rejectAuditRule.isPending || sendAuditFeedback.isPending}
+                      onClick={() => {
+                        setFeedbackIdx(currentAction.idx);
+                        setFeedbackMessage(null);
+                      }}
+                    >
+                      Give feedback
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={savingIdx === currentAction.idx || saveAuditRule.isPending || rejectAuditRule.isPending || sendAuditFeedback.isPending}
+                      onClick={() => {
+                        if (!currentRule) return;
+                        setSavingIdx(currentAction.idx);
+                        saveAuditRule.mutate(
+                          { syncId, rule: currentRule },
+                          {
+                            onSuccess: () => {
+                              setSavedRuleIds((s) => new Set(s).add(currentAction.idx));
+                              setSavingIdx(null);
+                              setRevisedAuditProposal(null);
+                              setFeedbackMessage(null);
+                            },
+                            onError: () => setSavingIdx(null),
+                          }
+                        );
+                      }}
+                    >
+                      {savingIdx === currentAction.idx ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                      Accept
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           ) : actionableFindings.length > 0 ? (

@@ -74,6 +74,11 @@ export const ACTION_CATALOG: RuleCatalogPrimitive[] = [
     description: "Set a default value only when the target field is blank.",
   },
   {
+    type: "set_value",
+    shape: '{ "type": "set_value", "field": "<field>", "value": "<value>" }',
+    description: "Overwrite the target field with a fixed value for rows that match the condition.",
+  },
+  {
     type: "prefix",
     shape: '{ "type": "prefix", "field": "<field>", "value": "<text>" }',
     description: "Add text to the beginning of a field.",

@@ -5,7 +5,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { runSyncPipeline } from "@/lib/pipeline/sync-runner";
 import { getPlatformDefaultRules } from "@/lib/pipeline/platform-defaults";
 import { getBasicFixRuleSpecs, getPlatformDefaultRuleSpec, validatePipelineRuleSpec } from "@/lib/pipeline/rule-catalog";
-import { buildRuleProposal, fingerprintRule } from "@/lib/pipeline/proposals";
+import { buildRuleProposal, fingerprintRule, preferenceKeyForRule } from "@/lib/pipeline/proposals";
+import { reviseProposalFromFeedback } from "@/lib/pipeline/proposal-feedback";
 import type { PipelineRuleSpec } from "@/lib/pipeline/rule-schema";
 import type { ProposalOrigin } from "@/lib/pipeline/proposals";
 
@@ -48,6 +49,11 @@ async function rememberDecision({
   origin,
   decision,
   rule,
+  feedbackText,
+  sourceFingerprint,
+  replacementFingerprint,
+  preferenceKey,
+  replacementRule,
 }: {
   supabase: ReturnType<typeof createServiceClient>;
   merchantId: string;
@@ -57,6 +63,11 @@ async function rememberDecision({
   origin: ProposalOrigin;
   decision: "accepted" | "rejected";
   rule: PipelineRuleSpec;
+  feedbackText?: string;
+  sourceFingerprint?: string;
+  replacementFingerprint?: string;
+  preferenceKey?: string;
+  replacementRule?: PipelineRuleSpec;
 }) {
   await supabase
     .from("rule_memories")
@@ -70,6 +81,11 @@ async function rememberDecision({
         fingerprint,
         origin,
         rule_spec: rule,
+        feedback_text: feedbackText ?? null,
+        source_fingerprint: sourceFingerprint ?? null,
+        replacement_fingerprint: replacementFingerprint ?? null,
+        preference_key: preferenceKey ?? preferenceKeyForRule(rule),
+        replacement_rule_spec: replacementRule ?? null,
       },
       { onConflict: "merchant_id,sync_id,fingerprint,decision" }
     );
@@ -104,14 +120,15 @@ export const proposalsRouter = createTRPCRouter({
       const candidateRules = [...basicRules, ...platformRules];
 
       const candidateFingerprints = candidateRules.map((entry) => fingerprintRule(entry.spec));
+      const candidatePreferenceKeys = candidateRules.map((entry) => preferenceKeyForRule(entry.spec));
 
       const [{ data: memories }, { data: existingRules }] = await Promise.all([
         ctx.supabase
           .from("rule_memories")
-          .select("fingerprint")
+          .select("fingerprint, preference_key")
           .eq("merchant_id", ctx.user.id)
           .eq("sync_id", input.syncId)
-          .in("fingerprint", candidateFingerprints),
+          .or(`fingerprint.in.(${candidateFingerprints.join(",")}),preference_key.in.(${candidatePreferenceKeys.join(",")})`),
         ctx.supabase
           .from("pipeline_rules")
           .select("conditions, actions")
@@ -120,6 +137,11 @@ export const proposalsRouter = createTRPCRouter({
       ]);
 
       const settled = new Set((memories ?? []).map((memory) => memory.fingerprint as string));
+      const settledPreferenceKeys = new Set(
+        (memories ?? [])
+          .map((memory) => memory.preference_key as string | null)
+          .filter((key): key is string => Boolean(key))
+      );
       for (const rule of existingRules ?? []) {
         const validation = validatePipelineRuleSpec({
           label: "Existing rule",
@@ -132,7 +154,7 @@ export const proposalsRouter = createTRPCRouter({
       }
 
       const proposals = candidateRules
-        .filter((entry) => !settled.has(fingerprintRule(entry.spec)))
+        .filter((entry) => !settled.has(fingerprintRule(entry.spec)) && !settledPreferenceKeys.has(preferenceKeyForRule(entry.spec)))
         .map((entry) =>
           buildRuleProposal({
             id: entry.id,
@@ -227,6 +249,104 @@ export const proposalsRouter = createTRPCRouter({
       });
 
       return { proposalId: input.proposalId };
+    }),
+
+  feedback: protectedProcedure
+    .input(
+      z.object({
+        syncId: z.string().uuid(),
+        proposalId: z.string(),
+        origin: ProposalOriginSchema,
+        rule: z.unknown(),
+        feedback: z.string().min(1),
+        examples: z.array(
+          z.object({
+            row_index: z.number(),
+            field: z.string(),
+            before: z.string(),
+            after: z.string(),
+          })
+        ).default([]),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const validation = validatePipelineRuleSpec(input.rule);
+      if (!validation.ok) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: `Invalid rule: ${validation.reason}` });
+      }
+
+      const service = createServiceClient();
+      const sync = await loadSync(ctx, input.syncId);
+      const result = await runSyncPipeline({
+        serviceClient: service,
+        sync: {
+          id: sync.id,
+          merchant_id: sync.merchant_id,
+          platform: sync.platform,
+          source_ids: sync.source_ids,
+          filter_rules: sync.filter_rules ?? [],
+        },
+      });
+
+      const sourceFingerprint = fingerprintRule(validation.rule);
+      const sourcePreferenceKey = preferenceKeyForRule(validation.rule);
+      const revision = await reviseProposalFromFeedback({
+        feedback: input.feedback,
+        origin: "user_request",
+        rule: validation.rule,
+        rows: result.rows,
+        examples: input.examples,
+      });
+
+      if (revision.type === "updated_proposal") {
+        await rememberDecision({
+          supabase: ctx.supabase,
+          merchantId: ctx.user.id,
+          syncId: input.syncId,
+          platform: sync.platform,
+          fingerprint: sourceFingerprint,
+          origin: input.origin,
+          decision: "rejected",
+          rule: validation.rule,
+          feedbackText: input.feedback,
+          sourceFingerprint,
+          replacementFingerprint: revision.proposal.fingerprint,
+          preferenceKey: sourcePreferenceKey,
+          replacementRule: revision.proposal.rule,
+        });
+
+        return {
+          type: "updated_proposal" as const,
+          message: revision.message,
+          proposal: revision.proposal,
+        };
+      }
+
+      if (revision.type === "suppress_similar") {
+        await rememberDecision({
+          supabase: ctx.supabase,
+          merchantId: ctx.user.id,
+          syncId: input.syncId,
+          platform: sync.platform,
+          fingerprint: sourceFingerprint,
+          origin: input.origin,
+          decision: "rejected",
+          rule: validation.rule,
+          feedbackText: input.feedback,
+          sourceFingerprint,
+          preferenceKey: sourcePreferenceKey,
+        });
+
+        return {
+          type: "suppress_similar" as const,
+          message: revision.message,
+        };
+      }
+
+      return {
+        type: "clarification" as const,
+        message: revision.message,
+      };
     }),
 
   acceptMany: protectedProcedure

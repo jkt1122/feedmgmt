@@ -17,6 +17,7 @@ export const RuleActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("replace"), field: z.string().min(1), find: z.string(), replace: z.string() }),
   z.object({ type: z.literal("replace_map"), field: z.string().min(1), map: z.record(z.string(), z.string()) }),
   z.object({ type: z.literal("set_default"), field: z.string().min(1), value: z.string() }),
+  z.object({ type: z.literal("set_value"), field: z.string().min(1), value: z.string() }),
   z.object({ type: z.literal("prefix"), field: z.string().min(1), value: z.string() }),
   z.object({ type: z.literal("suffix"), field: z.string().min(1), value: z.string() }),
   z.object({ type: z.literal("strip_html"), field: z.string().min(1) }),

@@ -78,10 +78,12 @@ export async function runSyncPipeline({
 
   const totalSourceRows = allProducts.length;
 
-  // 2. Deduplicate by id (keep first)
+  // 2. Deduplicate by id (keep first). Rows with no id are all kept —
+  // deduping on "" would silently collapse every id-less product into one.
   const seen = new Set<string>();
   const deduped = allProducts.filter((r) => {
     const id = r.id ?? "";
+    if (id === "") return true;
     if (seen.has(id)) return false;
     seen.add(id);
     return true;
@@ -111,15 +113,15 @@ export async function runSyncPipeline({
     action: r.actions as PipelineRuleSpec["action"],
   }));
 
-  const { rows, matchCounts } = syncSpecs.length > 0
+  const { rows, matchCounts, issuesByRow } = syncSpecs.length > 0
     ? applyRules(filtered, syncSpecs)
-    : { rows: filtered, matchCounts: [] };
+    : { rows: filtered, matchCounts: [], issuesByRow: new Map<number, { field: string; message: string }[]>() };
 
   return {
     rows,
     preTransformRows,
     columnMapping,
-    validationIssuesByRow: new Map(),
+    validationIssuesByRow: issuesByRow,
     syncRuleIds: (syncRulesData ?? []).map((r) => r.id),
     matchCounts,
     totalSourceRows,
