@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { PipelineRuleSpec } from "./rule-schema";
 import { renderRuleCatalogForPrompt, validatePipelineRuleSpec } from "./rule-catalog";
 import { dryRunRule, type RuleDryRun } from "./proposals";
+import { getLangfuse, flushLangfuse } from "../observability/langfuse";
 
 export type AuditFindingScope = "single" | "pattern";
 export type AuditFindingTier = "ok" | "warning" | "opportunity";
@@ -76,10 +77,12 @@ export async function runSyncAudit({
   rows,
   platform,
   columnMapping,
+  trace: traceInfo,
 }: {
   rows: Record<string, string>[];
   platform: "google_shopping" | "meta_catalog";
   columnMapping: Record<string, string>;
+  trace?: { sessionId?: string; userId?: string; syncId?: string };
 }): Promise<AuditReport> {
   let apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -125,6 +128,21 @@ ${dataBlock}
 
 Audit this feed for ${platformLabel} quality, compliance, and optimization opportunities.`;
 
+  const langfuse = getLangfuse();
+  const trace = langfuse?.trace({
+    name: "feed-assistant-audit",
+    userId: traceInfo?.userId,
+    sessionId: traceInfo?.sessionId,
+    input: { platform: platformLabel, productCount: rows.length, sampleSize: sample.length },
+    metadata: { syncId: traceInfo?.syncId },
+  });
+  const generation = trace?.generation({
+    name: "audit-completion",
+    model: "claude-sonnet-4-6",
+    input: { system: SYSTEM_PROMPT, messages: [{ role: "user", content: userPrompt }] },
+    modelParameters: { max_tokens: 8192 },
+  });
+
   const response = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 8192,
@@ -133,6 +151,10 @@ Audit this feed for ${platformLabel} quality, compliance, and optimization oppor
   });
 
   const text = response.content[0].type === "text" ? response.content[0].text : "";
+  generation?.end({
+    output: text,
+    usage: { input: response.usage?.input_tokens, output: response.usage?.output_tokens },
+  });
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   const jsonStr = jsonMatch ? jsonMatch[0] : "{}";
 
@@ -156,11 +178,18 @@ Audit this feed for ${platformLabel} quality, compliance, and optimization oppor
         dry_run: dryRun.affected_count > 0 ? dryRun : undefined,
       };
     });
-    return {
+    const report = {
       summary: parsed.summary ?? "Audit complete.",
       findings: validatedFindings,
     };
+    trace?.update({
+      output: { summary: report.summary, findingCount: report.findings.length },
+    });
+    await flushLangfuse();
+    return report;
   } catch {
+    trace?.update({ output: { error: "parse_failure" } });
+    await flushLangfuse();
     return {
       summary: "Could not parse audit results. Please try again.",
       findings: [],

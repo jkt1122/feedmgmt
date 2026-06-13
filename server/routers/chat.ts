@@ -139,6 +139,7 @@ export const chatRouter = createTRPCRouter({
         products: sampleProducts,
         history,
         ruleMemories,
+        trace: { sessionId: input.sessionId, userId: ctx.user.id, syncId: input.syncId },
       });
 
       if (chatResult.rule && !chatResult.is_question) {
@@ -294,6 +295,7 @@ export const chatRouter = createTRPCRouter({
         rows,
         platform: sync.platform,
         columnMapping,
+        trace: { sessionId: input.sessionId, userId: ctx.user.id, syncId: input.syncId },
       });
 
       // Save as assistant message with audit_report payload type.
