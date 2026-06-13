@@ -66,6 +66,17 @@ export function getLangfuse(): Langfuse | null {
   return client;
 }
 
+/**
+ * Where this trace is running, so local vs Vercel runs are distinguishable in
+ * the Langfuse UI. Vercel sets VERCEL_ENV to production/preview/development.
+ */
+export function tracingEnvironment(): string {
+  const vercelEnv = process.env.VERCEL_ENV;
+  if (vercelEnv) return `vercel:${vercelEnv}`;
+  if (process.env.VERCEL) return "vercel";
+  return "local";
+}
+
 /** Flush pending events. Safe to call when Langfuse is not configured. */
 export async function flushLangfuse(): Promise<void> {
   if (!client) return;

@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { PipelineRuleSpec } from "./rule-schema";
 import { renderRuleCatalogForPrompt, validatePipelineRuleSpec } from "./rule-catalog";
 import { dryRunRule, type RuleDryRun } from "./proposals";
-import { getLangfuse, flushLangfuse } from "../observability/langfuse";
+import { getLangfuse, flushLangfuse, tracingEnvironment } from "../observability/langfuse";
 
 export type AuditFindingScope = "single" | "pattern";
 export type AuditFindingTier = "ok" | "warning" | "opportunity";
@@ -134,6 +134,7 @@ Audit this feed for ${platformLabel} quality, compliance, and optimization oppor
     userId: traceInfo?.userId,
     sessionId: traceInfo?.sessionId,
     input: { platform: platformLabel, productCount: rows.length, sampleSize: sample.length },
+    tags: [tracingEnvironment()],
     metadata: { syncId: traceInfo?.syncId },
   });
   const generation = trace?.generation({
