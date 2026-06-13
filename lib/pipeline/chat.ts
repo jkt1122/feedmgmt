@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { PipelineRuleSpec } from "./rule-schema";
 import { previewRule } from "./rule-engine";
 import { renderRuleCatalogForPrompt, validatePipelineRuleSpec } from "./rule-catalog";
+import { getLangfuse, flushLangfuse } from "../observability/langfuse";
 
 type Product = {
   id: string;
@@ -102,12 +103,14 @@ export async function processChatInstruction({
   products,
   history,
   ruleMemories,
+  trace: traceInfo,
 }: {
   instruction: string;
   source: DataSource;
   products: Product[];
   history: { role: string; content: string }[];
   ruleMemories?: RuleMemorySummary[];
+  trace?: { sessionId?: string; userId?: string; syncId?: string };
 }): Promise<ChatResult> {
   let apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -170,14 +173,38 @@ User instruction: "${instruction}"`;
     rule?: PipelineRuleSpec;
   };
 
-  const callModel = async (): Promise<{ text: string; parsed: ParsedResponse | null }> => {
+  const langfuse = getLangfuse();
+  const trace = langfuse?.trace({
+    name: "feed-assistant-chat",
+    userId: traceInfo?.userId,
+    sessionId: traceInfo?.sessionId,
+    input: instruction,
+    metadata: { syncId: traceInfo?.syncId, source: source.name, productCount: rows.length },
+  });
+
+  const MODEL = "claude-sonnet-4-6";
+  const MAX_TOKENS = 2048;
+
+  // `label` distinguishes the initial call from the repair-loop retry so they
+  // appear as separate generations under the same trace.
+  const callModel = async (label: string): Promise<{ text: string; parsed: ParsedResponse | null }> => {
+    const generation = trace?.generation({
+      name: label,
+      model: MODEL,
+      input: { system: SYSTEM_PROMPT, messages: [...messages] },
+      modelParameters: { max_tokens: MAX_TOKENS },
+    });
     const response = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 2048,
+      model: MODEL,
+      max_tokens: MAX_TOKENS,
       system: SYSTEM_PROMPT,
       messages,
     });
     const text = response.content[0].type === "text" ? response.content[0].text : "";
+    generation?.end({
+      output: text,
+      usage: { input: response.usage?.input_tokens, output: response.usage?.output_tokens },
+    });
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     try {
       return { text, parsed: JSON.parse(jsonMatch ? jsonMatch[0] : "{}") };
@@ -186,19 +213,34 @@ User instruction: "${instruction}"`;
     }
   };
 
-  const initial = await callModel();
+  // Records the final outcome on the trace and flushes before returning
+  // (required on serverless — see lib/observability/langfuse.ts).
+  const finish = async <T extends ChatResult>(result: T): Promise<T> => {
+    trace?.update({
+      output: {
+        type: result.is_question ? "reply" : "transformation",
+        explanation: result.explanation,
+        rule: result.rule,
+        affected_count: result.affected_count,
+      },
+    });
+    await flushLangfuse();
+    return result;
+  };
+
+  const initial = await callModel("chat-completion");
   const text = initial.text;
   let parsed = initial.parsed;
 
   if (!parsed) {
-    return {
+    return finish({
       is_question: true,
       explanation: text || "I couldn't process that instruction. Please try rephrasing.",
       rule: null,
       affected_count: 0,
       preview: [],
       instruction,
-    };
+    });
   }
 
   // Normalise: support both new `type` field and legacy `is_question`
@@ -206,14 +248,14 @@ User instruction: "${instruction}"`;
 
   // question, clarification, and out_of_scope all surface as a plain reply
   if (responseType !== "transformation" || !parsed.rule) {
-    return {
+    return finish({
       is_question: true,
       explanation: parsed.explanation,
       rule: null,
       affected_count: 0,
       preview: [],
       instruction,
-    };
+    });
   }
 
   let validation = validatePipelineRuleSpec(parsed.rule);
@@ -228,7 +270,7 @@ User instruction: "${instruction}"`;
         content: `That rule failed validation: ${validation.reason}. Emit a corrected JSON response using only the documented condition and action types, with "field" values copied exactly from the data header. Return ONLY the JSON object.`,
       }
     );
-    const retry = await callModel();
+    const retry = await callModel("chat-completion-repair");
     if (retry.parsed?.rule) {
       parsed = retry.parsed;
       validation = validatePipelineRuleSpec(retry.parsed.rule);
@@ -236,14 +278,14 @@ User instruction: "${instruction}"`;
   }
 
   if (!validation.ok) {
-    return {
+    return finish({
       is_question: true,
       explanation: `I understood the request, but couldn't express it as one of the safe transformations I can run (${validation.reason}). You may need to handle this one manually.`,
       rule: null,
       affected_count: 0,
       preview: [],
       instruction,
-    };
+    });
   }
 
   const rule = validation.rule;
@@ -266,12 +308,12 @@ User instruction: "${instruction}"`;
       ? `⚠️ This rule currently matches 0 products in your feed, so it may not do what you intended (wrong field name or condition). It would only take effect on future data that matches. ${parsed.explanation}`
       : parsed.explanation;
 
-  return {
+  return finish({
     is_question: false,
     explanation,
     rule,
     affected_count,
     preview,
     instruction,
-  };
+  });
 }
