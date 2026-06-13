@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { PipelineRuleSpec } from "./rule-schema";
 import { previewRule } from "./rule-engine";
 import { renderRuleCatalogForPrompt, validatePipelineRuleSpec } from "./rule-catalog";
-import { getLangfuse, flushLangfuse } from "../observability/langfuse";
+import { getLangfuse, flushLangfuse, tracingEnvironment } from "../observability/langfuse";
 
 type Product = {
   id: string;
@@ -179,6 +179,7 @@ User instruction: "${instruction}"`;
     userId: traceInfo?.userId,
     sessionId: traceInfo?.sessionId,
     input: instruction,
+    tags: [tracingEnvironment()],
     metadata: { syncId: traceInfo?.syncId, source: source.name, productCount: rows.length },
   });
 
